@@ -5,9 +5,10 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     // Load all env vars from the workspace root.
     const env = loadEnv(mode, process.cwd(), '');
+    const basePath = env.VITE_BASE_PATH || '/';
 
     return {
-        base: '/', 
+        base: basePath,
         define: {
             // This makes the environment variables available on the client-side `process.env` object.
             'process.env.SUPABASE_URL': JSON.stringify(env.SUPABASE_URL),
