@@ -40,6 +40,17 @@ const fromBase64Url = (value: string): Uint8Array => {
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 };
 
+const decodeUserHandle = (buffer: ArrayBuffer | null): string | null => {
+  if (!buffer) return null;
+  try {
+    const bytes = new Uint8Array(buffer);
+    if (!bytes.length) return null;
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return null;
+  }
+};
+
 const getCredentialStorageKey = (userCode: string) => `biometric_credential_id_${userCode}`;
 
 export const useAuth = ({
@@ -76,7 +87,8 @@ export const useAuth = ({
       }
       try {
         const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-        setHasBiometricHardware(available);
+        // Some mobile browsers return false here but still support passkeys.
+        setHasBiometricHardware(available || !!window.PublicKeyCredential);
       } catch {
         setHasBiometricHardware(true);
       }
@@ -124,9 +136,8 @@ export const useAuth = ({
           timeout: 60000,
           attestation: 'none',
           authenticatorSelection: {
-            authenticatorAttachment: 'platform',
             residentKey: 'preferred',
-            userVerification: 'required',
+            userVerification: 'preferred',
           },
         },
       })) as PublicKeyCredential | null;
@@ -202,67 +213,78 @@ export const useAuth = ({
   };
 
   const handleBiometricLogin = async () => {
-    const savedUserCode = localStorage.getItem('biometric_user');
-    if (!savedUserCode) {
-      setLoginError('کاربری برای ورود بیومتریک ذخیره نشده است.');
-      return;
-    }
-    const credentialIdB64 = localStorage.getItem(getCredentialStorageKey(savedUserCode));
-    if (!credentialIdB64) {
-      setLoginError('کلید بیومتریک برای این کاربر ثبت نشده است. یک‌بار ورود عادی انجام دهید.');
-      return;
-    }
     setIsLoadingData(true);
     setLoginError('');
     const startTime = Date.now();
 
     try {
-      if (window.PublicKeyCredential && window.isSecureContext) {
-        const options: PublicKeyCredentialRequestOptions = {
-          challenge: createWebAuthnChallenge(),
-          userVerification: 'preferred',
-          allowCredentials: [
-            {
-              id: fromBase64Url(credentialIdB64),
-              type: 'public-key',
-            },
-          ],
-          timeout: 60000,
-        };
+      if (!window.PublicKeyCredential || !window.isSecureContext) {
+        setLoginError('ورود بیومتریک فقط در محیط امن (HTTPS یا localhost) قابل استفاده است.');
+        return;
+      }
+
+      const savedUserCode = localStorage.getItem('biometric_user') || '';
+      const credentialIdB64 = savedUserCode
+        ? localStorage.getItem(getCredentialStorageKey(savedUserCode))
+        : null;
+
+      let assertion: Credential | null = null;
+      if (credentialIdB64) {
         try {
-          await navigator.credentials.get({ publicKey: options });
-        } catch {
-          // Fallback for devices that prefer discoverable credentials.
-          await navigator.credentials.get({
+          assertion = await navigator.credentials.get({
             publicKey: {
               challenge: createWebAuthnChallenge(),
               userVerification: 'preferred',
+              allowCredentials: [
+                {
+                  id: fromBase64Url(credentialIdB64),
+                  type: 'public-key',
+                },
+              ],
               timeout: 60000,
             },
           });
+        } catch {
+          assertion = null;
         }
+      }
 
-        const elapsed = Date.now() - startTime;
-        if (elapsed < 1000) {
-          await new Promise((resolve) => setTimeout(resolve, 1000 - elapsed));
-        }
+      if (!assertion) {
+        // Fallback for devices that use discoverable credentials (passkeys).
+        assertion = await navigator.credentials.get({
+          publicKey: {
+            challenge: createWebAuthnChallenge(),
+            userVerification: 'preferred',
+            timeout: 60000,
+          },
+        });
+      }
 
-        const { users } = await fetchMasterData();
-        const data = users.find((u) => u.code === savedUserCode);
-        if (data) {
-          setUser(data);
-          setView(views.HOME);
-        } else {
-          setLoginError('کاربر ذخیره شده یافت نشد');
-        }
+      const assertionResponse = (assertion as PublicKeyCredential | null)?.response as
+        | AuthenticatorAssertionResponse
+        | undefined;
+      const userHandleCode = decodeUserHandle(assertionResponse?.userHandle ?? null);
+      const resolvedUserCode = userHandleCode || savedUserCode;
+
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 1000) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 - elapsed));
+      }
+
+      const { users } = await fetchMasterData();
+      const data = users.find((u) => u.code === resolvedUserCode);
+      if (data) {
+        localStorage.setItem('biometric_user', data.code);
+        setUser(data);
+        setView(views.HOME);
       } else {
-        setLoginError('ورود بیومتریک فقط در محیط امن (HTTPS یا localhost) قابل استفاده است.');
+        setLoginError('کاربر متناظر با ورود بیومتریک یافت نشد. یک‌بار ورود عادی انجام دهید.');
       }
     } catch (e: any) {
       if (e.name === 'NotAllowedError' || e.name === 'SecurityError') {
         setLoginError('عملیات لغو شد یا مجوز صادر نشد');
       } else {
-        setLoginError('احراز هویت انجام نشد (کلید عبور یافت نشد)');
+        setLoginError('احراز هویت انجام نشد. ابتدا یک‌بار ورود عادی انجام دهید و بیومتریک را فعال کنید.');
       }
     } finally {
       setIsLoadingData(false);

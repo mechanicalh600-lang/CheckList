@@ -341,7 +341,10 @@ export const App: React.FC<InspectionModuleProps> = ({ currentUser, onExit }) =>
   const savedBiometricUserCode = localStorage.getItem('biometric_user');
   const hasSavedBiometricCredential = !!(
     savedBiometricUserCode &&
-    localStorage.getItem(`biometric_credential_id_${savedBiometricUserCode}`)
+    (
+      localStorage.getItem(`biometric_credential_id_${savedBiometricUserCode}`) ||
+      savedBiometricUserCode
+    )
   );
 
   const goHome = useCallback(() => {
