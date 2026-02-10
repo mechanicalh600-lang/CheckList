@@ -39,6 +39,7 @@
 
 
 :root {
+  color-scheme: light;
   font-family: 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.5;
   font-weight: 400;
