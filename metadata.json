@@ -1,0 +1,8 @@
+{
+  "name": "CHECK LIST",
+  "description": "Next-gen maintenance checklist application with QR scanning and AI-generated workflows.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

@@ -1,0 +1,7 @@
+
+{
+  "platform": "static",
+  "app": "cmms-sabanour",
+  "output": "dist",
+  "port": 3000
+}
