@@ -80,13 +80,13 @@
       .rmdp-toolbar > div:first-child:hover { opacity: 0.9 !important; transform: translateY(-1px) !important; }
 
       /* --- Cinematic Splash Screen Styles --- */
-      body { margin: 0; padding: 0; background-color: #0f172a; }
+      body { margin: 0; padding: 0; background-color: #f8fafc; }
       #splash-screen {
         position: fixed; inset: 0; z-index: 9999;
         font-family: 'Vazirmatn', system-ui, sans-serif;
         background:
-          radial-gradient(1200px 560px at 50% 15%, rgba(127, 29, 29, 0.16), transparent 74%),
-          linear-gradient(180deg, #384457 0%, #334154 58%, #2c3b4f 100%);
+          radial-gradient(1100px 540px at 50% 12%, rgba(127, 29, 29, 0.08), transparent 74%),
+          linear-gradient(180deg, #f8fafc 0%, #eef2f7 58%, #e7edf5 100%);
         display: flex; align-items: center; justify-content: center;
         overflow: hidden;
       }
@@ -262,6 +262,20 @@
       }
     </style>
     
+<script>
+  (function () {
+    try {
+      var savedTheme = localStorage.getItem('app_theme');
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch (e) {
+      document.documentElement.classList.remove('dark');
+    }
+  })();
+</script>
 <link rel="stylesheet" href="/index.css">
 </head>
   <body class="antialiased selection:bg-accent selection:text-white transition-colors duration-300 dark:bg-slate-900 bg-slate-50">
