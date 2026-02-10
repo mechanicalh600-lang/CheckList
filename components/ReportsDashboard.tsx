@@ -1146,13 +1146,13 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({ onBack, onVi
             </div>
 
             {/* Filters */}
-            <div className="bg-white dark:bg-slate-800 p-5 mx-4 mt-4 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm no-print relative z-0">
+            <div className="bg-white dark:bg-slate-800 p-5 mx-4 mt-4 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm no-print">
                 <div className="flex flex-col md:flex-row items-end gap-4">
-                    <div className="flex-1 w-full space-y-2 relative z-0">
+                    <div className="flex-1 w-full space-y-2 relative">
                         <label className="text-[11px] font-black text-slate-400 mr-2 flex items-center gap-1.5 uppercase"><Calendar size={12} className="text-blue-500" /> از تاریخ</label>
                         <PersianDatePicker value={reportDateRange.start} onChange={handleStartDateChange} />
                     </div>
-                    <div className="flex-1 w-full space-y-2 relative z-0">
+                    <div className="flex-1 w-full space-y-2 relative">
                         <label className="text-[11px] font-black text-slate-400 mr-2 flex items-center gap-1.5 uppercase"><Calendar size={12} className="text-blue-500" /> تا تاریخ</label>
                         <PersianDatePicker value={reportDateRange.end} onChange={handleEndDateChange} />
                     </div>
@@ -1166,7 +1166,7 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({ onBack, onVi
             </div>
 
             {/* Toolbar - Conditional Sticky */}
-            <div className={`p-4 flex flex-col sm:flex-row gap-4 items-center justify-between z-40 bg-white dark:bg-slate-800 no-print ${['ACTIVITY', 'EQUIPMENT_HEALTH'].includes(activeTab) ? '' : 'sticky top-[73px]'}`}>
+            <div className={`p-4 flex flex-col sm:flex-row gap-4 items-center justify-between z-30 bg-white dark:bg-slate-800 no-print ${['ACTIVITY', 'EQUIPMENT_HEALTH'].includes(activeTab) ? '' : 'sticky top-[73px]'}`}>
                 <div className="relative w-full sm:w-72">
                     <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input type="text" placeholder="جستجو در کل..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pr-10 pl-4 text-sm outline-none focus:border-blue-500 dark:text-white transition-all shadow-sm" />

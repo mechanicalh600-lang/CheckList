@@ -99,7 +99,7 @@ export const PersianDatePicker: React.FC<Props> = ({ value, onChange, label, err
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
 
   return (
-    <div className="relative" ref={wrapperRef}>
+    <div className="relative z-[70]" ref={wrapperRef}>
       {label && <label className="block text-xs font-medium mb-1.5 text-slate-700 dark:text-slate-300">{label}</label>}
       
       <button
@@ -118,7 +118,7 @@ export const PersianDatePicker: React.FC<Props> = ({ value, onChange, label, err
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 z-50 mt-2 w-72 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-4 animate-fade-in-up">
+        <div className="absolute top-full left-0 z-[80] mt-2 w-72 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-4 animate-fade-in-up">
           <div className="flex justify-between items-center mb-4">
             <button onClick={handlePrevMonth} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition"><ChevronRight className="w-4 h-4 dark:text-white"/></button>
             <span className="font-bold text-sm text-slate-800 dark:text-white">{monthNames[viewMonth - 1]} {viewYear}</span>

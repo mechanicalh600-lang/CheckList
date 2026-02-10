@@ -91,7 +91,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                             onChange={(e) => setUsername(e.target.value)}
                             disabled={isBusy}
                             className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white rounded-xl sm:rounded-2xl py-2.5 sm:py-3 pr-10 pl-4 outline-none focus:border-red-500 focus:bg-white dark:focus:bg-slate-800/80 transition-all text-left dir-ltr placeholder:text-right shadow-sm text-sm"
-                            placeholder="مثال: 1234"
+                            placeholder="نام کاربری خود را وارد کنید"
                             />
                         </div>
                         </div>
@@ -165,7 +165,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
                 <div className="mt-4 sm:mt-8 text-center space-y-1 sm:space-y-2 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                     <p className="text-xs font-bold text-slate-500 dark:text-slate-400 opacity-80 dir-ltr">
-                        نسخه 2.9.2
+                        نسخه 3.0.0
                     </p>
                     <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 tracking-[0.2em] uppercase opacity-70" style={{ fontFamily: 'sans-serif' }}>
                         DESIGNED & DEVELOPED BY H.PARSA

@@ -23,7 +23,7 @@ import { useAuth } from './hooks/useAuth';
 import { useSession } from './hooks/useSession';
 import { useBackNavigation } from './hooks/useBackNavigation';
 
-const APP_VERSION = '2.9.0';
+const APP_VERSION = '3.0.0';
 
 enum AppView {
   LOGIN = 'LOGIN',
