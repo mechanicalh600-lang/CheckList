@@ -1,7 +1,8 @@
 {
   "name": "Smart CHECKLIST Pro",
   "short_name": "CHECKLIST",
-  "start_url": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f8fafc",
   "theme_color": "#7f1d1d",

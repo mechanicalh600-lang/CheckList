@@ -110,7 +110,6 @@ export const useAuth = ({
         publicKey: {
           challenge: createWebAuthnChallenge(),
           rp: {
-            id: window.location.hostname,
             name: 'RaiNo Checklist',
           },
           user: {
@@ -221,18 +220,27 @@ export const useAuth = ({
       if (window.PublicKeyCredential && window.isSecureContext) {
         const options: PublicKeyCredentialRequestOptions = {
           challenge: createWebAuthnChallenge(),
-          rpId: window.location.hostname,
-          userVerification: 'required',
+          userVerification: 'preferred',
           allowCredentials: [
             {
-              id: fromBase64Url(credentialIdB64).buffer,
+              id: fromBase64Url(credentialIdB64),
               type: 'public-key',
-              transports: ['internal'],
             },
           ],
           timeout: 60000,
         };
-        await navigator.credentials.get({ publicKey: options });
+        try {
+          await navigator.credentials.get({ publicKey: options });
+        } catch {
+          // Fallback for devices that prefer discoverable credentials.
+          await navigator.credentials.get({
+            publicKey: {
+              challenge: createWebAuthnChallenge(),
+              userVerification: 'preferred',
+              timeout: 60000,
+            },
+          });
+        }
 
         const elapsed = Date.now() - startTime;
         if (elapsed < 1000) {

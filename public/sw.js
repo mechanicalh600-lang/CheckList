@@ -1,12 +1,12 @@
 // Update version to force cache refresh and clean old files
-const CACHE_NAME = 'cmms-pro-v2.2-no-api-cache';
-const REPO_NAME = '/';
+const CACHE_NAME = 'cmms-pro-v2.3-gh-pages-base-fix';
+const APP_BASE = self.location.pathname.replace(/\/sw\.js$/, '/');
 
 const urlsToCache = [
-  `${REPO_NAME}`,
-  `${REPO_NAME}index.html`,
-  `${REPO_NAME}manifest.json`,
-  `${REPO_NAME}vite.svg`
+  `${APP_BASE}`,
+  `${APP_BASE}index.html`,
+  `${APP_BASE}manifest.json`,
+  `${APP_BASE}vite.svg`
 ];
 
 self.addEventListener('install', event => {
@@ -57,7 +57,9 @@ self.addEventListener('fetch', event => {
              return response;
           });
         })
-        .catch(() => {
+        .catch(async () => {
+          const appShell = await caches.match(`${APP_BASE}index.html`);
+          if (appShell) return appShell;
           return caches.match(event.request);
         })
     );
