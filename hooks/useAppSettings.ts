@@ -12,11 +12,15 @@ export const useAppSettings = () => {
     return savedTheme === 'dark' ? 'dark' : 'light';
   };
 
+  const getInitialBiometricEnabled = (): boolean => {
+    const savedBiometric = localStorage.getItem('biometric_enabled');
+    // Default is disabled unless explicitly enabled by user.
+    return savedBiometric === 'true';
+  };
+
   const [theme, setTheme] = useState<string>(getInitialTheme);
   const [snowEnabled, setSnowEnabled] = useState<boolean>(localStorage.getItem('app_snow') === 'true');
-  const [biometricEnabled, setBiometricEnabled] = useState<boolean>(
-    localStorage.getItem('biometric_enabled') === 'true'
-  );
+  const [biometricEnabled, setBiometricEnabled] = useState<boolean>(getInitialBiometricEnabled);
   const [orgTitle, setOrgTitle] = useState<string>(
     localStorage.getItem('app_org_title') || ORG_TITLE_DEFAULT
   );

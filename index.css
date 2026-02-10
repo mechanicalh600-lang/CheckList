@@ -172,7 +172,7 @@ body {
 
 .login-border-snake.is-running .snake-border-progress {
   stroke-dasharray: 20 80;
-  animation: snake-border-run 1.1s linear infinite;
+  animation: snake-border-run 1.8s linear infinite;
 }
 
 @keyframes snake-border-build {
