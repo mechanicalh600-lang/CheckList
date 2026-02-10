@@ -119,8 +119,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                   onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
                   className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-white"
                 >
-                  {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-                  <span>{theme === 'light' ? 'تیره' : 'روشن'}</span>
+                  {theme === 'light' ? <Sun size={16} /> : <Moon size={16} />}
+                  <span>تم فعلی: {theme === 'light' ? 'روشن' : 'تیره'}</span>
                 </button>
                 <button
                   onClick={() => setSnowEnabled(!snowEnabled)}

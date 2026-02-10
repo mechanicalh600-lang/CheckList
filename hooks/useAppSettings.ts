@@ -7,7 +7,12 @@ const clampAutoLogoutMinutes = (value: number) =>
   Number.isFinite(value) ? Math.max(MIN_AUTO_LOGOUT_MINUTES, Math.floor(value)) : MIN_AUTO_LOGOUT_MINUTES;
 
 export const useAppSettings = () => {
-  const [theme, setTheme] = useState<string>(localStorage.getItem('app_theme') || 'light');
+  const getInitialTheme = (): string => {
+    const savedTheme = localStorage.getItem('app_theme');
+    return savedTheme === 'dark' ? 'dark' : 'light';
+  };
+
+  const [theme, setTheme] = useState<string>(getInitialTheme);
   const [snowEnabled, setSnowEnabled] = useState<boolean>(localStorage.getItem('app_snow') === 'true');
   const [biometricEnabled, setBiometricEnabled] = useState<boolean>(
     localStorage.getItem('biometric_enabled') === 'true'
