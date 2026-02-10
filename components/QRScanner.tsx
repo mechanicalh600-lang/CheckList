@@ -113,7 +113,11 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose }) => {
             const track = stream.getVideoTracks()[0];
             if (track) {
                 const capabilities: MediaTrackCapabilitiesWithTorch = track.getCapabilities ? track.getCapabilities() : {};
-                if (capabilities.torch) {
+                const supportsTorch =
+                  !!capabilities.torch ||
+                  (Array.isArray((capabilities as any).fillLightMode) &&
+                    (capabilities as any).fillLightMode.includes('flash'));
+                if (supportsTorch) {
                     setHasTorch(true);
                 }
             }
@@ -165,10 +169,6 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose }) => {
 
   const toggleTorch = () => {
       if (!videoRef.current || !videoRef.current.srcObject) return;
-      if (!hasTorch) {
-          setTorchMessage('این دستگاه یا مرورگر از چراغ‌قوه پشتیبانی نمی‌کند.');
-          return;
-      }
       const stream = videoRef.current.srcObject as MediaStream;
       const track = stream.getVideoTracks()[0];
       
@@ -178,11 +178,12 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScan, onClose }) => {
       track.applyConstraints({
           advanced: [{ torch: newStatus }] as any
       }).then(() => {
+          setHasTorch(true);
           setTorchOn(newStatus);
           setTorchMessage(newStatus ? 'چراغ‌قوه روشن شد.' : 'چراغ‌قوه خاموش شد.');
       }).catch(e => {
           console.error("Torch error", e);
-          setTorchMessage('امکان تغییر وضعیت چراغ‌قوه وجود ندارد.');
+          setTorchMessage(hasTorch ? 'امکان تغییر وضعیت چراغ‌قوه وجود ندارد.' : 'این دستگاه یا مرورگر از چراغ‌قوه پشتیبانی نمی‌کند.');
       });
   };
 

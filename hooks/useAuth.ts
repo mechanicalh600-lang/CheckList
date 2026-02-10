@@ -234,9 +234,21 @@ export const useAuth = ({
       }
 
       const savedUserCode = localStorage.getItem('biometric_user') || '';
-      const credentialIdB64 = savedUserCode
+      let credentialIdB64 = savedUserCode
         ? localStorage.getItem(getCredentialStorageKey(savedUserCode))
         : null;
+
+      // If no credential is saved yet, attempt enrollment in direct user-click context.
+      if (!credentialIdB64 && savedUserCode) {
+        const { users } = await fetchMasterData();
+        const targetUser = users.find((u) => u.code === savedUserCode);
+        if (targetUser) {
+          const enrolled = await registerBiometricCredential(targetUser);
+          if (enrolled) {
+            credentialIdB64 = localStorage.getItem(getCredentialStorageKey(savedUserCode));
+          }
+        }
+      }
 
       let assertion: Credential | null = null;
       if (credentialIdB64) {
@@ -295,6 +307,8 @@ export const useAuth = ({
         setLoginError('عملیات لغو شد یا مجوز صادر نشد');
       } else if (e.name === 'NotSupportedError') {
         setLoginError('این دستگاه/مرورگر از ورود بیومتریک پشتیبانی کامل ندارد.');
+      } else if (e.name === 'InvalidStateError') {
+        setLoginError('گذرکلید برای این کاربر ثبت نشده است. یک‌بار ورود عادی انجام دهید.');
       } else {
         setLoginError('احراز هویت انجام نشد. ابتدا یک‌بار ورود عادی انجام دهید و بیومتریک را فعال کنید.');
       }
