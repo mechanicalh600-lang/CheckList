@@ -148,7 +148,7 @@ body {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 1.6;
+  stroke-width: 0.8;
   transform-origin: 50% 50%;
   transform: rotate(0deg);
 }

@@ -9,8 +9,19 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+const SPLASH_MIN_DURATION_MS = 5200;
+const splashStart = performance.now();
+
+const mountApp = () => {
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+};
+
+const elapsed = performance.now() - splashStart;
+const delay = Math.max(0, SPLASH_MIN_DURATION_MS - elapsed);
+window.setTimeout(() => {
+  window.requestAnimationFrame(mountApp);
+}, delay);
