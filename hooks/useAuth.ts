@@ -116,9 +116,11 @@ export const useAuth = ({
       return true;
     }
 
-    try {
+    const tryCreateCredential = async (
+      residentKey: 'required' | 'preferred'
+    ): Promise<PublicKeyCredential | null> => {
       const userId = new TextEncoder().encode(targetUser.code);
-      const credential = (await navigator.credentials.create({
+      return (await navigator.credentials.create({
         publicKey: {
           challenge: createWebAuthnChallenge(),
           rp: {
@@ -136,12 +138,20 @@ export const useAuth = ({
           timeout: 60000,
           attestation: 'none',
           authenticatorSelection: {
-            residentKey: 'preferred',
+            residentKey,
             userVerification: 'preferred',
           },
         },
       })) as PublicKeyCredential | null;
+    };
 
+    try {
+      let credential: PublicKeyCredential | null = null;
+      try {
+        credential = await tryCreateCredential('required');
+      } catch {
+        credential = await tryCreateCredential('preferred');
+      }
       if (!credential || !credential.rawId) {
         return false;
       }
@@ -214,7 +224,7 @@ export const useAuth = ({
 
   const handleBiometricLogin = async () => {
     setIsLoadingData(true);
-    setLoginError('');
+    setLoginError('در حال احراز هویت بیومتریک...');
     const startTime = Date.now();
 
     try {
@@ -283,6 +293,8 @@ export const useAuth = ({
     } catch (e: any) {
       if (e.name === 'NotAllowedError' || e.name === 'SecurityError') {
         setLoginError('عملیات لغو شد یا مجوز صادر نشد');
+      } else if (e.name === 'NotSupportedError') {
+        setLoginError('این دستگاه/مرورگر از ورود بیومتریک پشتیبانی کامل ندارد.');
       } else {
         setLoginError('احراز هویت انجام نشد. ابتدا یک‌بار ورود عادی انجام دهید و بیومتریک را فعال کنید.');
       }

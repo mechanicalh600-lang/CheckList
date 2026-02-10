@@ -149,7 +149,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                         )}
                         </button>
 
-                        {biometricEnabled && hasBiometricHardware && hasSavedBiometric && (
+                        {biometricEnabled && hasBiometricHardware && (
                             <button 
                                 type="button" 
                                 onClick={onBiometricLogin}
