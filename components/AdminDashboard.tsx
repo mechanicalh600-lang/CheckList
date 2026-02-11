@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { ChevronLeft, RefreshCw, Trash2, AlertCircle, CheckCircle, ShieldCheck, Search, Database, Plus, Edit, UploadCloud, X, Save, KeyRound, User, Camera, ListChecks, ChevronDown, AlertTriangle, FileSpreadsheet, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { fetchTableData, insertData, updateData, deleteRows, upsertData, adminResetUserPassword, uploadFile, checkRecordExists } from '../services/supabaseClient';
-import { seedDatabase } from '../services/seedService';
-import { UserRole } from '../types';
+import { fetchTableData, insertData, updateData, deleteRows, upsertData, adminResetUserPassword, uploadFile, checkRecordExists } from '@/services/supabaseClient';
+import { seedDatabase } from '@/services/seedService';
+import { UserRole } from '@/types';
 import XLSX from 'xlsx-js-style';
 
 interface AdminDashboardProps {

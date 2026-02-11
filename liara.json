@@ -1,6 +1,5 @@
-
 {
-  "platform": "static",
+  "platform": "react",
   "app": "cmms-sabanour",
   "output": "dist",
   "port": 3000

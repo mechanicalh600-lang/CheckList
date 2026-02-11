@@ -1,9 +1,9 @@
 
 import { supabase } from './supabaseClient';
-import { USERS } from '../data/User';
-import { EQUIPMENT_LIST } from '../data/Asset';
-import { ASSET_SCHEDULES } from '../data/AssetScheduling';
-import { STATIC_CHECKLISTS } from '../data/JobcardActivity';
+import { USERS } from '@/data/User';
+import { EQUIPMENT_LIST } from '@/data/Asset';
+import { ASSET_SCHEDULES } from '@/data/AssetScheduling';
+import { STATIC_CHECKLISTS } from '@/data/JobcardActivity';
 
 export const seedDatabase = async (onProgress: (msg: string) => void) => {
     try {

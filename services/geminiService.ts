@@ -1,8 +1,8 @@
 
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { GeneratedTask } from "../types";
-import { STATIC_CHECKLISTS } from "../data/JobcardActivity";
+import { GeneratedTask } from "@/types";
+import { STATIC_CHECKLISTS } from "@/data/JobcardActivity";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 

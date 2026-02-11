@@ -1,7 +1,7 @@
 import React from 'react';
 import { User as UserIcon, Settings, BarChart2, ShieldCheck, LogOut } from 'lucide-react';
 import { CompanyLogo } from './Logo';
-import { User } from '../types';
+import { User } from '@/types';
 
 interface NavbarProps {
     user: User | null;

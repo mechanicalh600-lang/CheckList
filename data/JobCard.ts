@@ -1,5 +1,5 @@
 
-import { Activity } from '../types';
+import { Activity } from '@/types';
 import { ASSET_SCHEDULES } from './AssetScheduling';
 
 // This file now derives activities directly from the Master Asset Schedule.

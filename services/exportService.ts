@@ -1,4 +1,4 @@
-import { InspectionForm } from '../types';
+import { InspectionForm } from '@/types';
 
 type CellStyle = {
   font: {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PieChart, BarChart } from 'lucide-react';
-import { InspectionForm } from '../types';
-import { getTopFailures } from '../services/supabaseClient';
+import { InspectionForm } from '@/types';
+import { getTopFailures } from '@/services/supabaseClient';
 
 interface AnalyticsDashboardProps {
     history: InspectionForm[];

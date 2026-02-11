@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { getAppSettings, updateAppSetting } from '@/services/supabaseClient';
 
 const ORG_TITLE_DEFAULT = 'شرکت توسعه معدنی و صنعتی صبانور';
 const MIN_AUTO_LOGOUT_MINUTES = 1;
@@ -14,7 +15,6 @@ export const useAppSettings = () => {
 
   const getInitialBiometricEnabled = (): boolean => {
     const savedBiometric = localStorage.getItem('biometric_enabled');
-    // Default is disabled unless explicitly enabled by user.
     return savedBiometric === 'true';
   };
 
@@ -27,10 +27,39 @@ export const useAppSettings = () => {
   const [autoLogoutMinutes, setAutoLogoutMinutes] = useState<number>(
     clampAutoLogoutMinutes(parseInt(localStorage.getItem('auto_logout_minutes') || '5', 10))
   );
+  const [isSettingsLoading, setIsSettingsLoading] = useState(true);
 
-  const applyAutoLogoutMinutes = (value: number) => {
-    setAutoLogoutMinutes(clampAutoLogoutMinutes(value));
-  };
+  useEffect(() => {
+    let cancelled = false;
+    getAppSettings().then((db) => {
+      if (cancelled || !db) return;
+      setOrgTitle(db.org_title || ORG_TITLE_DEFAULT);
+      setAutoLogoutMinutes(clampAutoLogoutMinutes(db.auto_logout_minutes));
+      localStorage.setItem('app_org_title', db.org_title || ORG_TITLE_DEFAULT);
+      localStorage.setItem('auto_logout_minutes', String(db.auto_logout_minutes));
+    }).finally(() => {
+      if (!cancelled) setIsSettingsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const orgTitleSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const applyOrgTitle = useCallback((value: string) => {
+    setOrgTitle(value);
+    localStorage.setItem('app_org_title', value);
+    if (orgTitleSaveTimeout.current) clearTimeout(orgTitleSaveTimeout.current);
+    orgTitleSaveTimeout.current = setTimeout(() => {
+      updateAppSetting('org_title', value);
+      orgTitleSaveTimeout.current = null;
+    }, 500);
+  }, []);
+
+  const applyAutoLogoutMinutes = useCallback(async (value: number) => {
+    const clamped = clampAutoLogoutMinutes(value);
+    setAutoLogoutMinutes(clamped);
+    localStorage.setItem('auto_logout_minutes', String(clamped));
+    await updateAppSetting('auto_logout_minutes', String(clamped));
+  }, []);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -49,14 +78,6 @@ export const useAppSettings = () => {
     localStorage.setItem('biometric_enabled', String(biometricEnabled));
   }, [biometricEnabled]);
 
-  useEffect(() => {
-    localStorage.setItem('app_org_title', orgTitle);
-  }, [orgTitle]);
-
-  useEffect(() => {
-    localStorage.setItem('auto_logout_minutes', String(autoLogoutMinutes));
-  }, [autoLogoutMinutes]);
-
   return {
     theme,
     setTheme,
@@ -65,8 +86,9 @@ export const useAppSettings = () => {
     biometricEnabled,
     setBiometricEnabled,
     orgTitle,
-    setOrgTitle,
+    setOrgTitle: applyOrgTitle,
     autoLogoutMinutes,
     setAutoLogoutMinutes: applyAutoLogoutMinutes,
+    isSettingsLoading,
   };
 };

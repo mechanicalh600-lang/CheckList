@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction, useCallback, useEffect, useState } from 'react';
-import { User } from '../types';
+import { User } from '@/types';
 
 interface SessionViews {
   LOGIN: string;

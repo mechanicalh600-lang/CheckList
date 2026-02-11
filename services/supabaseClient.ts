@@ -1,4 +1,4 @@
-import { InspectionForm } from '../types';
+import { InspectionForm } from '@/types';
 import { supabase, supabaseAnonKey, supabaseUrl } from './supabase/client';
 import {
     adminResetUserPassword,
@@ -424,6 +424,21 @@ export const getUserLogs = async (startDate?: string, endDate?: string) => {
 export const getMasterUsers = async () => {
     const { data } = await supabase.from('defined_users').select('*');
     return data || [];
+};
+
+/** تنظیمات سراسری اپ (برای همه کاربران) */
+export const getAppSettings = async (): Promise<{ org_title: string; auto_logout_minutes: number } | null> => {
+    const { data, error } = await supabase.from('app_settings').select('key, value');
+    if (error) return null;
+    const map = new Map<string, string>((data || []).map((r: { key: string; value: string }) => [r.key, r.value]));
+    const org = map.get('org_title') || '';
+    const mins = parseInt(map.get('auto_logout_minutes') || '5', 10);
+    return { org_title: org, auto_logout_minutes: Math.max(1, mins) };
+};
+
+export const updateAppSetting = async (key: string, value: string): Promise<boolean> => {
+    const { error } = await supabase.from('app_settings').upsert({ key, value }, { onConflict: 'key' });
+    return !error;
 };
 
 export const getMasterAssets = async () => {

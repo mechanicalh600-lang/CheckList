@@ -1,6 +1,6 @@
 import React from 'react';
 import { Camera, CloudSnow, Eye, EyeOff, Fingerprint, Loader2, Moon, Sun, User as UserIcon, X } from 'lucide-react';
-import { User } from '../../types';
+import { User } from '@/types';
 
 interface PasswordMessage {
   type: 'success' | 'error';

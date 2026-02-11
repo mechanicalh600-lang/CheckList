@@ -12,9 +12,9 @@ import {
   Search,
   User as UserIcon,
 } from 'lucide-react';
-import { InspectionForm, InspectionStatus, User } from '../../types';
-import { PersianDatePicker } from '../PersianDatePicker';
-import { SkeletonCard } from '../SkeletonCard';
+import { InspectionForm, InspectionStatus, User } from '@/types';
+import { PersianDatePicker } from '@/components/PersianDatePicker';
+import { SkeletonCard } from '@/components/SkeletonCard';
 
 interface HistoryViewProps {
   user: User | null;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { InspectionForm, User } from '../types';
-import { getInspections } from '../services/supabaseClient';
-import { getStartOfCurrentShamsiMonth } from '../utils';
+import { InspectionForm, User } from '@/types';
+import { getInspections } from '@/services/supabaseClient';
+import { getStartOfCurrentShamsiMonth } from '@/utils';
 
 export const useHistory = (user: User | null) => {
   const [inspectionHistory, setInspectionHistory] = useState<InspectionForm[]>([]);

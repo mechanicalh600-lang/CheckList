@@ -9,14 +9,14 @@ import {
   InspectionReportData,
   InspectionStatus,
   User,
-} from '../types';
-import { analyzeInspectionReport, generateChecklistForEquipment } from '../services/geminiService';
+} from '@/types';
+import { analyzeInspectionReport, generateChecklistForEquipment } from '@/services/geminiService';
 import {
   getAssetSchedules,
   getChecklistForJobCard,
   getInspectionDetailsByIds,
   saveInspection,
-} from '../services/supabaseClient';
+} from '@/services/supabaseClient';
 
 interface InspectionViews {
   LOGIN: string;

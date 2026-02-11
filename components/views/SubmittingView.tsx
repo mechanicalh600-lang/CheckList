@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
-import { AnimatedCompanyLogo } from '../Logo';
+import { AnimatedCompanyLogo } from '@/components/Logo';
 
 interface SubmittingViewProps {
   submitError: string | null;

@@ -1,27 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { SnowEffect } from './components/SnowEffect';
-import { AssetMaster, InspectionReportData, User } from './types';
+import { SnowEffect } from '@/components/SnowEffect';
+import { AssetMaster, InspectionReportData, User } from '@/types';
 import {
   getInspectionDetailsByIds,
   getMasterAssets,
   getMasterUsers,
   uploadProfileImage,
-} from './services/supabaseClient';
-import { exportInspectionHistoryToExcel } from './services/exportService';
+} from '@/services/supabaseClient';
+import { exportInspectionHistoryToExcel } from '@/services/exportService';
 
 // Imported Components
-import { AppRouter } from './components/AppRouter';
-import { LoginView } from './components/views/LoginView';
-import { AutoLogoutModal } from './components/modals/AutoLogoutModal';
-import { LogoutConfirmModal } from './components/modals/LogoutConfirmModal';
-import { UserProfileModal } from './components/modals/UserProfileModal';
-import { SystemSettingsModal } from './components/modals/SystemSettingsModal';
-import { useAppSettings } from './hooks/useAppSettings';
-import { useHistory } from './hooks/useHistory';
-import { useInspectionFlow } from './hooks/useInspectionFlow';
-import { useAuth } from './hooks/useAuth';
-import { useSession } from './hooks/useSession';
-import { useBackNavigation } from './hooks/useBackNavigation';
+import { AppRouter } from '@/components/AppRouter';
+import { LoginView } from '@/components/views/LoginView';
+import { AutoLogoutModal } from '@/components/modals/AutoLogoutModal';
+import { LogoutConfirmModal } from '@/components/modals/LogoutConfirmModal';
+import { UserProfileModal } from '@/components/modals/UserProfileModal';
+import { SystemSettingsModal } from '@/components/modals/SystemSettingsModal';
+import { useAppSettings } from '@/hooks/useAppSettings';
+import { useHistory } from '@/hooks/useHistory';
+import { useInspectionFlow } from '@/hooks/useInspectionFlow';
+import { useAuth } from '@/hooks/useAuth';
+import { useSession } from '@/hooks/useSession';
+import { useBackNavigation } from '@/hooks/useBackNavigation';
 
 const APP_VERSION = '3.0.0';
 

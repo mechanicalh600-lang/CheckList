@@ -1,4 +1,4 @@
-import { UserRole } from '../../types';
+import { UserRole } from '@/types';
 import { supabase } from './client';
 
 const getClientIP = async (): Promise<string | null> => {

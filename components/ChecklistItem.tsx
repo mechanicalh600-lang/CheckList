@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { CheckCircle2, XCircle, Camera, Video, AlertTriangle, FileEdit, Mic, MicOff, Trash2, Image as ImageIcon, Film } from 'lucide-react';
-import { ChecklistItemData, InspectionStatus } from '../types';
+import { ChecklistItemData, InspectionStatus } from '@/types';
 
 interface Props {
   item: ChecklistItemData;

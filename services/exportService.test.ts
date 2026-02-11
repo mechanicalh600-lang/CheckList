@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { InspectionStatus, type InspectionForm } from '../types';
+import { InspectionStatus, type InspectionForm } from '@/types';
 import { buildInspectionExcelRows, buildInspectionExportFilename } from './exportService';
 
 describe('buildInspectionExcelRows', () => {

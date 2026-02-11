@@ -21,12 +21,21 @@ export default defineConfig(({ mode }) => {
         server: {
           port: 3000,
           host: '0.0.0.0',
+          watch: {
+            ignored: ['**/.liara_*', '**/.liara_*/**', '**/*.zip', '**/liara/**'],
+          },
         },
         plugins: [react()],
         build: {
           target: 'es2015', // Ensure compatibility with older mobile browsers to prevent white screen
           outDir: 'dist',
           chunkSizeWarningLimit: 950,
+          // Strip console.log/warn in production builds (keeps console.error for debugging)
+          minify: 'esbuild',
+          esbuild: {
+            pure: mode === 'production' ? ['console.log', 'console.warn'] : [],
+            drop: mode === 'production' ? ['debugger'] : [],
+          },
           rollupOptions: {
             output: {
               manualChunks(id) {

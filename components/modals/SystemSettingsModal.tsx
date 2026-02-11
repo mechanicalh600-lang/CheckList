@@ -1,6 +1,6 @@
 import React from 'react';
 import { Building, Clock, X, Zap } from 'lucide-react';
-import { CompanyLogo } from '../Logo';
+import { CompanyLogo } from '@/components/Logo';
 
 interface SystemSettingsModalProps {
   orgTitle: string;
@@ -24,8 +24,8 @@ export const SystemSettingsModal: React.FC<SystemSettingsModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto flex flex-col">
-        <div className="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto flex flex-col mx-2 sm:mx-4">
+        <div className="flex justify-between items-center mb-4 sm:mb-6 border-b border-slate-100 dark:border-slate-800 pb-3 sm:pb-4">
           <h3 className="font-bold text-lg dark:text-white flex items-center gap-2">
             <div className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xl">
               <Zap size={20} className="text-amber-500" />
@@ -45,13 +45,13 @@ export const SystemSettingsModal: React.FC<SystemSettingsModalProps> = ({
             <CompanyLogo className="h-24 w-24" />
           </div>
 
-          <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-700">
-            <h4 className="text-sm font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-              <Building size={16} className="text-blue-500" />
+          <div className="bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-5 rounded-2xl border border-slate-100 dark:border-slate-700 min-w-0">
+            <h4 className="text-sm font-bold text-slate-800 dark:text-white mb-3 sm:mb-4 flex items-center gap-2">
+              <Building size={16} className="text-blue-500 shrink-0" />
               مشخصات سازمان
             </h4>
-            <div className="space-y-3">
-              <div>
+            <div className="space-y-3 min-w-0">
+              <div className="min-w-0">
                 <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-2">
                   نام سازمان (نمایش در صفحه ورود)
                 </label>
@@ -59,27 +59,29 @@ export const SystemSettingsModal: React.FC<SystemSettingsModalProps> = ({
                   type="text"
                   value={orgTitle}
                   onChange={(e) => setOrgTitle(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl p-3 text-sm outline-none focus:border-blue-500 dark:text-white"
+                  className="w-full min-w-0 max-w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl p-3 text-base sm:text-sm outline-none focus:border-blue-500 dark:text-white"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">تغییرات به صورت خودکار ذخیره می‌شوند.</p>
+                <p className="text-[10px] text-slate-400 mt-1">تغییرات به صورت خودکار ذخیره می‌شوند و برای همه کاربران اعمال می‌گردند.</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-700">
-            <h4 className="text-sm font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-              <Clock size={16} className="text-red-500" />
+          <div className="bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-5 rounded-2xl border border-slate-100 dark:border-slate-700 min-w-0">
+            <h4 className="text-sm font-bold text-slate-800 dark:text-white mb-3 sm:mb-4 flex items-center gap-2">
+              <Clock size={16} className="text-red-500 shrink-0" />
               تنظیمات نشست کاربر
             </h4>
-            <div className="space-y-3">
-              <div>
+            <div className="space-y-3 min-w-0">
+              <div className="min-w-0 w-full">
                 <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block mb-2">
                   خروج خودکار پس از عدم فعالیت (دقیقه)
                 </label>
                 <input
                   type="number"
-                  min="1"
-                  step="1"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  min={1}
+                  step={1}
                   value={autoLogoutMinutes}
                   onChange={(e) => {
                     if (e.target.value === '') {
@@ -96,10 +98,10 @@ export const SystemSettingsModal: React.FC<SystemSettingsModalProps> = ({
                       setAutoLogoutMinutes(1);
                     }
                   }}
-                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl p-3 text-sm outline-none focus:border-blue-500 dark:text-white text-center font-bold"
+                  className="w-full min-w-0 max-w-full sm:max-w-[180px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl p-3 text-base sm:text-sm outline-none focus:border-blue-500 dark:text-white text-center font-bold"
                 />
                 <p className="text-[10px] text-slate-400 mt-1">
-                  اگر کاربر به مدت تعیین شده فعالیتی نداشته باشد، به صفحه ورود هدایت می‌شود.
+                  اگر کاربر به مدت تعیین شده فعالیتی نداشته باشد، به صفحه ورود هدایت می‌شود. این تنظیم برای همه کاربران اعمال می‌شود.
                 </p>
               </div>
             </div>

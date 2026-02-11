@@ -1,5 +1,5 @@
 
-import { GeneratedTask } from "../types";
+import { GeneratedTask } from "@/types";
 
 // Data can be seeded by admin import, but we keep baseline templates for resilience.
 const RAW_CHECKLIST_DATA = `Sequence,ActivityTitle,JobCardCode

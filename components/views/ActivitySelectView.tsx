@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
-import { Activity, Equipment } from '../../types';
+import { Activity, Equipment } from '@/types';
 
 interface ActivitySelectViewProps {
   currentEquipment: Equipment | null;

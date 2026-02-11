@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-import { jalaliToGregorian, getShamsiDate, isFutureDate, toShamsi, toGregorian } from '../utils';
+import { jalaliToGregorian, getShamsiDate, isFutureDate, toShamsi, toGregorian } from '@/utils';
 
 interface Props {
   value: string;

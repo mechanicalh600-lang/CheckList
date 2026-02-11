@@ -9,9 +9,9 @@ import {
   User as UserIcon,
   Zap,
 } from 'lucide-react';
-import { AnalyticsDashboard } from '../AnalyticsDashboard';
-import { SkeletonCard } from '../SkeletonCard';
-import { InspectionForm, InspectionStatus } from '../../types';
+import { AnalyticsDashboard } from '@/components/AnalyticsDashboard';
+import { SkeletonCard } from '@/components/SkeletonCard';
+import { InspectionForm, InspectionStatus } from '@/types';
 
 interface HomeViewProps {
   isLoadingHistory: boolean;

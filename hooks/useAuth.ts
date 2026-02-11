@@ -1,6 +1,6 @@
 import { Dispatch, FormEvent, SetStateAction, useEffect, useRef, useState } from 'react';
-import { authenticateUser, changeUserPassword } from '../services/supabaseClient';
-import { User } from '../types';
+import { authenticateUser, changeUserPassword } from '@/services/supabaseClient';
+import { User } from '@/types';
 
 interface AuthViews {
   LOGIN: string;

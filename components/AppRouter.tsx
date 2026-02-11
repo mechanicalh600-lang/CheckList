@@ -1,6 +1,6 @@
 import React, { Dispatch, FormEvent, SetStateAction, Suspense } from 'react';
 import { QRScanner } from './QRScanner';
-import { Activity, ChecklistItemData, Equipment, InspectionForm, InspectionReportData, User } from '../types';
+import { Activity, ChecklistItemData, Equipment, InspectionForm, InspectionReportData, User } from '@/types';
 import { Navbar } from './Navbar';
 import { ForcePasswordChangeView } from './views/ForcePasswordChangeView';
 import { DashboardLoadingFallback } from './views/DashboardLoadingFallback';

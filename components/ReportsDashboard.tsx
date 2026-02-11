@@ -6,10 +6,10 @@ import {
     getInspectionsOverview,
     getUserLogs,
     updateInspectionStatus,
-} from '../services/supabaseClient';
+} from '@/services/supabaseClient';
 import XLSX from 'xlsx-js-style';
 import { PersianDatePicker } from './PersianDatePicker';
-import { getStartOfCurrentShamsiMonth, toShamsi } from '../utils';
+import { getStartOfCurrentShamsiMonth, toShamsi } from '@/utils';
 
 interface ReportsDashboardProps {
     onBack: () => void;

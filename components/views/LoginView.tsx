@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { User as UserIcon, Lock, Eye, EyeOff, AlertTriangle, Loader2, ArrowRight, Fingerprint } from 'lucide-react';
-import { CompanyLogo } from '../Logo';
+import { CompanyLogo } from '@/components/Logo';
 
 interface LoginViewProps {
     onLogin: (username: string, password: string) => void;

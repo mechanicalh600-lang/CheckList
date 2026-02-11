@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertTriangle, Building2, CheckCircle2, CheckSquare, Share2, User as UserIcon, X } from 'lucide-react';
-import { ChecklistItemData, Equipment, InspectionStatus, User } from '../../types';
+import { ChecklistItemData, Equipment, InspectionStatus, User } from '@/types';
 
 interface SuccessViewProps {
   reportInspector: string | null;

@@ -1,8 +1,8 @@
 import React from 'react';
 import { CheckCircle2, Loader2, X } from 'lucide-react';
-import { Activity, ChecklistItemData, Equipment } from '../../types';
-import { ChecklistItem } from '../ChecklistItem';
-import { SkeletonCard } from '../SkeletonCard';
+import { Activity, ChecklistItemData, Equipment } from '@/types';
+import { ChecklistItem } from '@/components/ChecklistItem';
+import { SkeletonCard } from '@/components/SkeletonCard';
 
 interface InspectionFormViewProps {
   currentEquipment: Equipment | null;
