@@ -3,20 +3,19 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-    // Load all env vars from the workspace root.
     const env = loadEnv(mode, process.cwd(), '');
-    const basePath = env.VITE_BASE_PATH || '/';
+    // Fallback to process.env for Liara/CI where vars are injected at build time (no .env file)
+    const basePath = env.VITE_BASE_PATH || process.env.VITE_BASE_PATH || '/';
+    const supabaseUrl = env.SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseAnonKey = env.SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+    const geminiKey = env.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
     return {
         base: basePath,
         define: {
-            // This makes the environment variables available on the client-side `process.env` object.
-            'process.env.SUPABASE_URL': JSON.stringify(env.SUPABASE_URL),
-            'process.env.SUPABASE_ANON_KEY': JSON.stringify(env.SUPABASE_ANON_KEY),
-            // The Gemini service uses `process.env.API_KEY` as per guidelines.
-            // For local development, we map the GEMINI_API_KEY from the .env file to it.
-            // In the deployed environment, the platform is expected to provide `process.env.API_KEY`.
-            'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+            'process.env.SUPABASE_URL': JSON.stringify(supabaseUrl),
+            'process.env.SUPABASE_ANON_KEY': JSON.stringify(supabaseAnonKey),
+            'process.env.API_KEY': JSON.stringify(geminiKey)
         },
         server: {
           port: 3000,

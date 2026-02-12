@@ -50,7 +50,6 @@ export const HomeView = ({
     if (report.items.length > 0) {
       return report.items
         .filter((item) => item.status === InspectionStatus.FAIL)
-        .slice(0, 5)
         .map((item) => ({ task: item.task, comment: item.comment }));
     }
     return (report.failTasksSample || []).map((task) => ({ task, comment: '' }));

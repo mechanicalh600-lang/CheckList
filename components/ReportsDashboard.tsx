@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { ChevronRight, RefreshCw, Trash2, AlertCircle, CheckCircle2, Search, Eye, Calendar, Filter, BarChart3, Printer, Activity as ActivityIcon, AlertOctagon, HeartPulse, Stethoscope, FileSpreadsheet, Send, CheckCircle, TrendingUp, User, Award, Zap, PieChart, Target, AlertTriangle, Database, ChevronsLeft, ChevronsRight, ChevronLeft, Sigma, ArrowUp, ArrowDown, ArrowUpDown, XCircle, FilterX } from 'lucide-react';
+import { ChevronRight, RefreshCw, Trash2, AlertCircle, CheckCircle2, Search, Eye, Calendar, Filter, BarChart3, Printer, Activity as ActivityIcon, AlertOctagon, HeartPulse, Stethoscope, FileSpreadsheet, Send, CheckCircle, TrendingUp, User, Award, Zap, PieChart, Target, AlertTriangle, Database, ChevronsLeft, ChevronsRight, ChevronLeft, Sigma, ArrowUp, ArrowDown, ArrowUpDown, XCircle, FilterX, FileDown } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import {
     deleteRows,
     getFullReport,
     getInspectionsOverview,
     getUserLogs,
     updateInspectionStatus,
+    getMasterAssets,
 } from '@/services/supabaseClient';
 import XLSX from 'xlsx-js-style';
 import { PersianDatePicker } from './PersianDatePicker';
@@ -28,7 +31,7 @@ const SCHEMA: any = {
             { key: 'activityName', label: 'فعالیت' },
             { key: 'trackingCode', label: 'کد رهگیری' },
             { key: 'status', label: 'وضعیت', type: 'status' },
-            { key: 'timestamp', label: 'تاریخ', type: 'date' },
+            { key: 'timestamp', label: 'تاریخ', type: 'datetime' },
         ],
         allowDelete: true, 
     },
@@ -167,11 +170,18 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({ onBack, onVi
             if (tab === 'LOGS') {
                 data = await getUserLogs(start, end);
             } else if (tab === 'REPORTS') {
-                // Keep full payload for report listing to preserve current fields/behaviour.
                 data = await getFullReport(start, end);
             } else {
-                // Use summary payload for analytics tabs to reduce transfer and processing cost.
                 data = await getInspectionsOverview(undefined, start, end);
+            }
+            // Enrich inspections with equipmentLocalName for Equipment Health / Reports
+            if (data && data.length > 0 && tab !== 'LOGS') {
+                const assets = await getMasterAssets();
+                const assetMap = new Map<string, string>((assets || []).map((a: any) => [String(a.code || a.asset_number || ''), a.description || a.name || '']));
+                data = (data as any[]).map((insp: any) => ({
+                    ...insp,
+                    equipmentLocalName: insp.equipmentId ? (assetMap.get(String(insp.equipmentId)) || '') : '',
+                }));
             }
             setDataList((data as any[]) || []);
         } catch (error: any) {
@@ -359,8 +369,9 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({ onBack, onVi
 
             const eqId = insp.equipmentId || 'Unknown';
             if (!stats[eqId]) {
+                const displayName = (insp.equipmentLocalName || '').trim() || insp.equipmentName || 'نامشخص';
                 stats[eqId] = {
-                    name: insp.equipmentName || 'نامشخص',
+                    name: displayName,
                     id: eqId,
                     totalInspections: 0,
                     totalItems: 0,
@@ -417,9 +428,10 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({ onBack, onVi
         
         const maxDaily = Math.max(...dailyTrend.map(d => d.count), 5);
         const maxUserTotal = Math.max(...sortedUsers.map(u => u.total), 1);
+        const denom = daysCount > 1 ? daysCount - 1 : 1;
 
         const svgPoints = dailyTrend.map((d, index) => {
-             const x = 100 - ((index / (daysCount - 1)) * 100);
+             const x = 100 - ((index / denom) * 100);
              const y = 100 - ((d.count / maxDaily) * 85);
              return `${x},${y}`;
         }).join(" ");
@@ -479,10 +491,10 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({ onBack, onVi
                                 {[0, 25, 50, 75, 100].map((percent) => <g key={percent}><line x1="0" y1={100 - (percent * 0.85)} x2="100" y2={100 - (percent * 0.85)} stroke="currentColor" strokeOpacity="0.1" strokeWidth="0.5" strokeDasharray="2 2" className="text-slate-400" /></g>)}
                                 <path d={`M100,100 ${svgPoints} L0,100 Z`} fill="url(#redGradient)" />
                                 <polyline points={svgPoints} fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                                {dailyTrend.map((d, index) => <g key={index} className="group/point" onMouseEnter={() => setChartHover({ day: d.day, count: d.count, x: 100 - ((index / (daysCount - 1)) * 100), y: 100 - ((d.count / maxDaily) * 85) })} onMouseLeave={() => setChartHover(null)}><rect x={(100 - ((index / (daysCount - 1)) * 100)) - 2} y="0" width="4" height="100" fill="transparent" className="cursor-pointer"/>{d.count > 0 && <circle cx={100 - ((index / (daysCount - 1)) * 100)} cy={100 - ((d.count / maxDaily) * 85)} r="1.5" fill="#ef4444" stroke="white" strokeWidth="0.5" vectorEffect="non-scaling-stroke" className="transition-all duration-200 group-hover/point:r-[3]"/>}</g>)}
+                                {dailyTrend.map((d, index) => <g key={index} className="group/point" onMouseEnter={() => setChartHover({ day: d.day, count: d.count, x: 100 - ((index / denom) * 100), y: (100 - ((d.count / maxDaily) * 85)) / 110 * 100 })} onMouseLeave={() => setChartHover(null)}><rect x={(100 - ((index / denom) * 100)) - 2} y="0" width="4" height="100" fill="transparent" className="cursor-pointer"/>{d.count > 0 && <circle cx={100 - ((index / denom) * 100)} cy={100 - ((d.count / maxDaily) * 85)} r="1.5" fill="#ef4444" stroke="white" strokeWidth="0.5" vectorEffect="non-scaling-stroke" className="transition-all duration-200 group-hover/point:r-[3]"/>}</g>)}
                             </svg>
                             {chartHover && <div className="absolute z-50 pointer-events-none transition-all duration-150 ease-out" style={{ left: `${chartHover.x}%`, top: `${chartHover.y}%` }}><div className="transform -translate-x-1/2 -translate-y-full -mt-3"><div className="bg-slate-900 text-white text-[11px] font-bold py-1.5 px-3 rounded-lg shadow-xl whitespace-nowrap border border-slate-700/50 flex items-center gap-1.5"><span>{chartHover.day}م :</span><span className="text-blue-300">{chartHover.count} بازرسی</span></div><div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1 w-2 h-2 bg-slate-900 rotate-45 border-r border-b border-slate-700/50"></div></div></div>}
-                            <div className="absolute bottom-0 left-0 w-full h-4">{dailyTrend.map((d, i) => <div key={i} className={`absolute bottom-0 text-[9px] text-slate-400 font-medium font-mono transform -translate-x-1/2 transition-opacity ${d.day % 2 !== 0 ? 'opacity-100' : 'opacity-0'}`} style={{ left: `${100 - ((i / (daysCount - 1)) * 100)}%` }}>{d.day}</div>)}</div>
+                            <div className="absolute bottom-0 left-0 w-full h-4">{dailyTrend.map((d, i) => <div key={i} className={`absolute bottom-0 text-[9px] text-slate-400 font-medium font-mono transform -translate-x-1/2 ${(d.day % 2 !== 0 || i === daysCount - 1) ? 'opacity-100' : 'opacity-0'}`} style={{ left: `${100 - ((i / denom) * 100)}%` }}>{d.day}</div>)}</div>
                         </div>
                     </div>
                 </div>
@@ -872,57 +884,13 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({ onBack, onVi
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
     const handlePrintPDF = () => {
-        let dataToPrint: any[] = [];
-        let columns: Array<{ key: string; label: string; type?: string }> = [];
-
-        if (activeTab === 'REPORTS' || activeTab === 'LOGS') {
-            dataToPrint = filteredData;
-            columns = currentSchema.columns;
-        } else if (activeTab === 'EQUIPMENT_HEALTH') {
-            const { items } = calculateEquipmentHealth();
-            dataToPrint = processData(items);
-            columns = [
-                { key: 'name', label: 'نام تجهیز' },
-                { key: 'id', label: 'کد تجهیز' },
-                { key: 'totalInspections', label: 'تعداد بازرسی' },
-                { key: 'totalFails', label: 'خرابی ثبت شده' },
-                { key: 'healthScore', label: 'امتیاز سلامت (%)' },
-            ];
-        } else if (activeTab === 'ACTIVITY') {
-            const { sortedUsers } = calculateActivityMatrix();
-            dataToPrint = processData(sortedUsers);
-            columns = [
-                { key: 'name', label: 'نام بازرس' },
-                { key: 'total', label: 'مجموع گزارشات' },
-            ];
-        }
-
-        if (!dataToPrint.length || !columns.length) {
-            setStatusMessage({ type: 'error', text: 'داده‌ای برای چاپ وجود ندارد.' });
-            return;
-        }
-
         const escapeHtml = (value: string) =>
-            value
+            String(value ?? '')
                 .replaceAll('&', '&amp;')
                 .replaceAll('<', '&lt;')
                 .replaceAll('>', '&gt;')
                 .replaceAll('"', '&quot;')
                 .replaceAll("'", '&#39;');
-
-        const formatPrintValue = (item: any, column: { key: string; type?: string }) => {
-            const rawValue = item[column.key];
-            if (rawValue === null || rawValue === undefined || rawValue === '') return '---';
-            if (column.type === 'date') {
-                const date = new Date(rawValue);
-                return isNaN(date.getTime()) ? '---' : date.toLocaleDateString('fa-IR');
-            }
-            if (column.type === 'datetime') {
-                const date = new Date(rawValue);
-                return isNaN(date.getTime()) ? '---' : date.toLocaleString('fa-IR');
-            }
-            return String(rawValue);
-        };
 
         const nameMap: Record<string, string> = {
             REPORTS: 'گزارشات بازرسی',
@@ -931,53 +899,278 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({ onBack, onVi
             ACTIVITY: 'عملکرد کاربران',
         };
 
-        const headerCells = columns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join('');
-        const bodyRows = dataToPrint
-            .map((item, index) => {
-                const cells = columns
-                    .map((column) => `<td>${escapeHtml(formatPrintValue(item, column))}</td>`)
-                    .join('');
-                return `<tr><td>${index + 1}</td>${cells}</tr>`;
-            })
-            .join('');
-
         const now = new Date();
+        const reportTitle = nameMap[activeTab] || 'گزارش';
+        const printDateStr = now.toLocaleString('fa-IR', { dateStyle: 'long', timeStyle: 'short' });
+        const dateRangeShamsiPrint = `${toShamsi(reportDateRange.start)} تا ${toShamsi(reportDateRange.end)}`;
+        const baseStyles = `
+            @font-face { font-family: 'Vazirmatn'; src: url('/fonts/Vazirmatn-wght.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
+            * { box-sizing: border-box; }
+            body { font-family: 'Vazirmatn', Tahoma, sans-serif; margin: 0; padding: 0; color: #0f172a; background: #fff; min-height: 100vh; display: flex; flex-direction: column; }
+            .report-page { padding: 28px 32px 80px; }
+            @media print {
+                body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                .report-page { padding: 20px 24px 100px; }
+                .report-footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 10px 24px; font-size: 0.68rem; color: #64748b; border-top: 1px solid #cbd5e1; background: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; display: flex; justify-content: space-between; align-items: center; }
+                table { page-break-inside: auto; }
+                tr { page-break-inside: avoid; page-break-after: auto; }
+                thead { display: table-header-group; }
+                .stat-card { break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                .report-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-shadow: none; }
+            }
+            .report-header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%); color: #fff; padding: 28px 32px; margin: 0 -32px 24px -32px; border-radius: 0 0 20px 20px; box-shadow: 0 4px 14px rgba(15,23,42,0.25); }
+            .report-header h1 { margin: 0 0 6px; font-size: 1.65rem; font-weight: 900; letter-spacing: -0.02em; }
+            .report-header .subtitle { font-size: 0.8rem; opacity: 0.85; margin-bottom: 12px; }
+            .report-header .meta { font-size: 0.75rem; opacity: 0.9; display: flex; flex-wrap: wrap; gap: 6px 20px; }
+            .report-header .meta span { display: inline-flex; align-items: center; gap: 6px; }
+            .report-header .meta span::before { content: '•'; opacity: 0.6; }
+            .report-header .meta span:first-child::before { display: none; }
+            .report-body { margin-top: 24px; flex: 1; }
+            .info-box { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 12px 24px; }
+            .info-box .item { display: flex; align-items: center; gap: 8px; }
+            .info-box .item .label { font-size: 0.7rem; color: #64748b; }
+            .info-box .item .value { font-size: 0.95rem; font-weight: 800; color: #0f172a; }
+            .table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.04); overflow: hidden; }
+            table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+            th, td { padding: 12px 14px; text-align: center; vertical-align: middle; border: 1px solid #e2e8f0; }
+            th { background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); color: #475569; font-weight: 800; font-size: 0.75rem; }
+            tr:nth-child(even) td { background: #fafafa; }
+            tr:nth-child(odd) td { background: #fff; }
+            .badge { display: inline-block; padding: 5px 12px; border-radius: 10px; font-size: 0.72rem; font-weight: 800; }
+            .badge-green { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+            .badge-blue { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+            .badge-yellow { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+            .badge-health-ok { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+            .badge-health-warn { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+            .badge-health-critical { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+            .summary-row td { background: #eff6ff !important; font-weight: 800; color: #1e40af; border-top: 2px solid #93c5fd; }
+            .stat-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
+            @media (max-width: 900px) { .stat-cards { grid-template-columns: repeat(2, 1fr); } }
+            .stat-card { padding: 20px 16px; border-radius: 14px; text-align: center; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+            .stat-card .num { font-size: 1.9rem; font-weight: 900; line-height: 1.2; }
+            .stat-card .label { font-size: 0.72rem; opacity: 0.95; margin-top: 6px; line-height: 1.4; }
+            .dir-ltr { direction: ltr; }
+            .report-footer { padding: 12px 24px; font-size: 0.7rem; color: #64748b; border-top: 1px solid #e2e8f0; background: #fafafa; margin: 24px -32px 0 -32px; display: flex; justify-content: space-between; align-items: center; }
+            @media print { .report-footer .page-info::after { content: ' | صفحه ' counter(page) ' از ' counter(pages); } }
+            @page { margin: 18mm; }
+            .top-performers { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1px solid #fde68a; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 16px 24px; }
+            .top-performers .title { font-size: 0.8rem; font-weight: 800; color: #92400e; margin-bottom: 8px; width: 100%; }
+            .top-performers .item { display: flex; align-items: center; gap: 10px; background: #fff; padding: 8px 14px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+            .top-performers .item .rank { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.75rem; }
+            .top-performers .item .rank.gold { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #fff; }
+            .top-performers .item .rank.silver { background: linear-gradient(135deg, #94a3b8, #64748b); color: #fff; }
+            .top-performers .item .rank.bronze { background: linear-gradient(135deg, #fdba74, #ea580c); color: #fff; }
+            .section-title { font-size: 0.9rem; font-weight: 800; color: #334155; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+        `;
+
+        let html = '';
+
+        if (activeTab === 'REPORTS' || activeTab === 'LOGS') {
+            const dataToPrint = filteredData;
+            const columns = currentSchema.columns;
+            if (!dataToPrint.length || !columns.length) {
+                setStatusMessage({ type: 'error', text: 'داده‌ای برای چاپ وجود ندارد.' });
+                return;
+            }
+
+            const formatPrintValue = (item: any, column: { key: string; type?: string }) => {
+                const rawValue = item[column.key];
+                if (rawValue === null || rawValue === undefined || rawValue === '') return '---';
+                if (column.type === 'date') {
+                    const date = new Date(rawValue);
+                    return isNaN(date.getTime()) ? '---' : date.toLocaleDateString('fa-IR');
+                }
+                if (column.type === 'datetime') {
+                    const date = new Date(rawValue);
+                    return isNaN(date.getTime()) ? '---' : date.toLocaleString('fa-IR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+                }
+                return String(rawValue);
+            };
+
+            const headerCells = columns.map((c) => `<th>${escapeHtml(c.label)}</th>`).join('');
+            const bodyRows = dataToPrint.map((item, idx) => {
+                const cells = columns.map((col) => {
+                    if (col.type === 'status') {
+                        const v = item[col.key] || 'بازبینی';
+                        const cls = v === 'اتمام یافته' ? 'badge-green' : v === 'ارسال به cmms' ? 'badge-blue' : 'badge-yellow';
+                        return `<td><span class="badge ${cls}">${escapeHtml(v)}</span></td>`;
+                    }
+                    return `<td class="${col.type === 'datetime' ? 'dir-ltr' : ''}">${escapeHtml(formatPrintValue(item, col))}</td>`;
+                }).join('');
+                return `<tr><td>${idx + 1}</td>${cells}</tr>`;
+            }).join('');
+
+            const statusCounts = activeTab === 'REPORTS' ? {
+                done: dataToPrint.filter((r: any) => r.status === 'اتمام یافته').length,
+                cmms: dataToPrint.filter((r: any) => r.status === 'ارسال به cmms').length,
+                review: dataToPrint.filter((r: any) => !r.status || r.status === 'بازبینی').length,
+            } : null;
+            const uniqueUsers = activeTab === 'LOGS' ? new Set(dataToPrint.map((r: any) => r.user_code || r.user_name)).size : 0;
+            const infoBox = activeTab === 'REPORTS' && statusCounts
+                ? `<div class="info-box"><div class="item"><span class="label">اتمام یافته</span><span class="value">${statusCounts.done}</span></div><div class="item"><span class="label">ارسال به CMMS</span><span class="value">${statusCounts.cmms}</span></div><div class="item"><span class="label">در حال بازبینی</span><span class="value">${statusCounts.review}</span></div></div>`
+                : activeTab === 'LOGS'
+                ? `<div class="info-box"><div class="item"><span class="label">تعداد ورود</span><span class="value">${dataToPrint.length}</span></div><div class="item"><span class="label">کاربران منحصر به فرد</span><span class="value">${uniqueUsers}</span></div></div>`
+                : '';
+
+            html = `
+            <!doctype html>
+            <html lang="fa" dir="rtl">
+            <head><meta charset="utf-8" /><title>${escapeHtml(reportTitle)}</title><style>${baseStyles}</style></head>
+            <body>
+                <div class="report-page">
+                    <div class="report-header">
+                        <h1>${escapeHtml(reportTitle)}</h1>
+                        <div class="subtitle">گزارش تولید شده توسط سیستم چک‌لیست هوشمند</div>
+                        <div class="meta">
+                            <span>تاریخ چاپ: ${escapeHtml(printDateStr)}</span>
+                            <span>بازه گزارش: ${escapeHtml(dateRangeShamsiPrint)}</span>
+                            <span>تعداد کل: ${dataToPrint.length} رکورد</span>
+                            ${activeTab === 'LOGS' ? `<span>کاربران منحصر به فرد: ${uniqueUsers}</span>` : statusCounts ? `<span>اتمام: ${statusCounts.done} | CMMS: ${statusCounts.cmms} | بازبینی: ${statusCounts.review}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="report-body">
+                        ${infoBox}
+                        <div class="section-title">جدول داده‌ها</div>
+                        <div class="table-wrap"><table><thead><tr><th>#</th>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></div>
+                    </div>
+                </div>
+                <div class="report-footer"><span>${escapeHtml(reportTitle)}</span><span class="page-info">${escapeHtml(printDateStr)}</span></div>
+            </body></html>`;
+        } else if (activeTab === 'EQUIPMENT_HEALTH') {
+            const { items, summary } = calculateEquipmentHealth();
+            let filteredByWidget = items;
+            if (healthFilter === 'HEALTHY') filteredByWidget = items.filter((i: any) => i.healthScore >= 90);
+            else if (healthFilter === 'WARNING') filteredByWidget = items.filter((i: any) => i.healthScore >= 70 && i.healthScore < 90);
+            else if (healthFilter === 'CRITICAL') filteredByWidget = items.filter((i: any) => i.healthScore < 70);
+            const dataToPrint = processData(filteredByWidget);
+            if (!dataToPrint.length) {
+                setStatusMessage({ type: 'error', text: 'داده‌ای برای چاپ وجود ندارد.' });
+                return;
+            }
+
+            const statCards = `
+                <div class="stat-card" style="background: linear-gradient(135deg,#3b82f6,#6366f1);"><div class="num">${summary.totalEquipments}</div><div class="label">تعداد تجهیزات</div></div>
+                <div class="stat-card" style="background: linear-gradient(135deg,#22c55e,#16a34a);"><div class="num">${summary.healthyEquipments}</div><div class="label">سالم (≥۹۰٪)</div></div>
+                <div class="stat-card" style="background: linear-gradient(135deg,#f59e0b,#d97706);"><div class="num">${summary.warningEquipments}</div><div class="label">هشدار (۷۰–۹۰٪)</div></div>
+                <div class="stat-card" style="background: linear-gradient(135deg,#ef4444,#dc2626);"><div class="num">${summary.criticalEquipments}</div><div class="label">بحرانی (&lt;۷۰٪)</div></div>
+                <div class="stat-card" style="background: linear-gradient(135deg,#8b5cf6,#7c3aed);"><div class="num">${summary.avgScore}%</div><div class="label">میانگین سلامت</div></div>
+            `;
+
+            const bodyRows = dataToPrint.map((item, idx) => {
+                const badgeClass = item.healthScore >= 90 ? 'badge-health-ok' : item.healthScore >= 70 ? 'badge-health-warn' : 'badge-health-critical';
+                return `<tr>
+                    <td>${idx + 1}</td>
+                    <td style="text-align:right;font-weight:700">${escapeHtml(item.name)}</td>
+                    <td class="dir-ltr">${escapeHtml(item.id)}</td>
+                    <td>${item.totalInspections}</td>
+                    <td style="color:#dc2626;font-weight:700">${item.totalFails}</td>
+                    <td><span class="badge ${badgeClass}">${item.healthScore}%</span></td>
+                </tr>`;
+            }).join('');
+
+            html = `
+            <!doctype html>
+            <html lang="fa" dir="rtl">
+            <head><meta charset="utf-8" /><title>${escapeHtml(reportTitle)}</title><style>${baseStyles}</style></head>
+            <body>
+                <div class="report-page">
+                    <div class="report-header">
+                        <h1>${escapeHtml(reportTitle)}</h1>
+                        <div class="subtitle">تحلیل سلامت تجهیزات بر اساس بازرسی‌های ثبت شده</div>
+                        <div class="meta">
+                            <span>تاریخ چاپ: ${escapeHtml(printDateStr)}</span>
+                            <span>بازه گزارش: ${escapeHtml(dateRangeShamsiPrint)}</span>
+                            <span>تعداد تجهیزات: ${dataToPrint.length}</span>
+                            <span>میانگین سلامت کل: ${summary.avgScore}%</span>
+                        </div>
+                    </div>
+                    <div class="report-body">
+                        <div class="section-title">خلاصه وضعیت</div>
+                        <div class="stat-cards">${statCards}</div>
+                        <div class="section-title">جدول جزئیات تجهیزات</div>
+                        <div class="table-wrap"><table>
+                            <thead><tr><th>#</th><th>نام تجهیز</th><th>کد تجهیز</th><th>تعداد بازرسی</th><th>خرابی</th><th>امتیاز سلامت</th></tr></thead>
+                            <tbody>${bodyRows}</tbody>
+                        </table></div>
+                    </div>
+                </div>
+                <div class="report-footer"><span>${escapeHtml(reportTitle)}</span><span class="page-info">${escapeHtml(printDateStr)}</span></div>
+            </body></html>`;
+        } else if (activeTab === 'ACTIVITY') {
+            const { sortedUsers, dailyTotals, daysCount } = calculateActivityMatrix();
+            const dataToPrint = processData(sortedUsers);
+            if (!dataToPrint.length) {
+                setStatusMessage({ type: 'error', text: 'داده‌ای برای چاپ وجود ندارد.' });
+                return;
+            }
+
+            const dayHeaders = Array.from({ length: daysCount }, (_, i) => `<th style="min-width:28px">${i + 1}</th>`).join('');
+            const totalRow = Array.from({ length: daysCount }, (_, i) => `<td class="summary-row">${dailyTotals[i + 1] || 0}</td>`).join('');
+            const grandTotal = Object.values(dailyTotals).reduce((a, b) => a + b, 0);
+            const dailyTrendPrint = Array.from({ length: daysCount }, (_, i) => ({ day: i + 1, count: dailyTotals[i + 1] || 0 }));
+            const maxDailyPrint = Math.max(...dailyTrendPrint.map(d => d.count), 5);
+            const denomPrint = daysCount > 1 ? daysCount - 1 : 1;
+            const svgPointsPrint = dailyTrendPrint.map((d, index) => {
+                const x = 100 - ((index / denomPrint) * 100);
+                const y = 100 - ((d.count / maxDailyPrint) * 85);
+                return `${x},${y}`;
+            }).join(' ');
+            const xLabelsPrint = dailyTrendPrint.filter((_, i) => (i + 1) % 2 === 1 || i === daysCount - 1).map(d => { const idx = d.day - 1; const x = 100 - ((idx / denomPrint) * 100); return `<text x="${x}" y="108" font-size="7" fill="#64748b" text-anchor="middle" font-family="Vazirmatn,Tahoma,sans-serif">${d.day}</text>`; }).join('');
+            const trendChartPrint = `<div class="section-title">روند بازرسی‌های روزانه</div><div class="table-wrap" style="margin-bottom:16px;background:#f8fafc;padding:12px;border-radius:12px;"><svg viewBox="0 -5 100 110" preserveAspectRatio="xMidYMid meet" style="width:100%;height:160px;"><defs><linearGradient id="printRedGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ef4444" stop-opacity="0.3"/><stop offset="100%" stop-color="#ef4444" stop-opacity="0"/></linearGradient></defs><path d="M100,100 ${svgPointsPrint} L0,100 Z" fill="url(#printRedGrad)"/><polyline points="${svgPointsPrint}" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${xLabelsPrint}</svg></div>`;
+
+            const bodyRows = dataToPrint.map((user, idx) => {
+                const dayCells = Array.from({ length: daysCount }, (_, i) => {
+                    const count = user.days?.[i + 1] || 0;
+                    return `<td style="${count > 0 ? 'background:#dcfce7;color:#166534;font-weight:700' : ''}">${count || '-'}</td>`;
+                }).join('');
+                const rankBadge = idx < 3 ? ` style="background:${idx === 0 ? '#fef08a' : idx === 1 ? '#e2e8f0' : '#fed7aa'};padding:2px 8px;border-radius:8px;font-weight:800"` : '';
+                return `<tr>
+                    <td${rankBadge}>${idx + 1}</td>
+                    <td style="text-align:right;font-weight:700">${escapeHtml(user.name)}</td>
+                    ${dayCells}
+                    <td class="summary-row">${user.total}</td>
+                </tr>`;
+            }).join('');
+
+            html = `
+            <!doctype html>
+            <html lang="fa" dir="rtl">
+            <head><meta charset="utf-8" /><title>${escapeHtml(reportTitle)}</title><style>${baseStyles} .activity-table th { font-size: 0.7rem; } @page { size: landscape; margin: 18mm; } .activity-table-wrap { overflow-x: visible !important; } .activity-table-wrap table { width: max-content; min-width: 100%; }</style></head>
+            <body>
+                <div class="report-page">
+                    <div class="report-header">
+                        <h1>${escapeHtml(reportTitle)}</h1>
+                        <div class="subtitle">عملکرد روزانه بازرسین در بازه گزارش</div>
+                        <div class="meta">
+                            <span>تاریخ چاپ: ${escapeHtml(printDateStr)}</span>
+                            <span>بازه گزارش: ${escapeHtml(dateRangeShamsiPrint)}</span>
+                            <span>مجموع بازرسی‌ها: ${grandTotal}</span>
+                            <span>تعداد بازرس: ${dataToPrint.length}</span>
+                        </div>
+                    </div>
+                    <div class="report-body">
+                        ${trendChartPrint}
+                        <div class="section-title">ماتریس عملکرد روزانه (ستون‌ها: روزهای ماه)</div>
+                        <div class="table-wrap activity-table-wrap"><table class="activity-table">
+                            <thead><tr><th>#</th><th>نام بازرس</th>${dayHeaders}<th>مجموع</th></tr></thead>
+                            <tbody>${bodyRows}
+                            <tr><td></td><td class="summary-row" style="text-align:right">مجموع کل</td>${totalRow}<td class="summary-row">${grandTotal}</td></tr>
+                            </tbody>
+                        </table></div>
+                    </div>
+                </div>
+                <div class="report-footer"><span>${escapeHtml(reportTitle)}</span><span class="page-info">${escapeHtml(printDateStr)}</span></div>
+            </body></html>`;
+        } else {
+            setStatusMessage({ type: 'error', text: 'داده‌ای برای چاپ وجود ندارد.' });
+            return;
+        }
+
         const printWindow = window.open('', '_blank', 'width=1200,height=900');
         if (!printWindow) {
             setStatusMessage({ type: 'error', text: 'امکان باز کردن پنجره چاپ وجود ندارد.' });
             return;
         }
-
-        const html = `
-            <!doctype html>
-            <html lang="fa" dir="rtl">
-            <head>
-                <meta charset="utf-8" />
-                <title>${escapeHtml(nameMap[activeTab] || 'گزارش')}</title>
-                <style>
-                    body { font-family: Vazirmatn, Tahoma, sans-serif; margin: 24px; color: #0f172a; }
-                    .meta { margin-bottom: 16px; font-size: 12px; color: #334155; }
-                    h1 { margin: 0 0 8px; font-size: 22px; }
-                    table { width: 100%; border-collapse: collapse; font-size: 12px; }
-                    th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: center; vertical-align: middle; }
-                    th { background: #0f172a; color: #fff; font-weight: 700; }
-                    tr:nth-child(even) td { background: #f8fafc; }
-                    .summary { margin: 8px 0 16px; font-size: 13px; font-weight: 700; }
-                </style>
-            </head>
-            <body>
-                <h1>${escapeHtml(nameMap[activeTab] || 'گزارش')}</h1>
-                <div class="meta">تاریخ چاپ: ${escapeHtml(now.toLocaleString('fa-IR'))}</div>
-                <div class="meta">بازه گزارش: از ${escapeHtml(reportDateRange.start)} تا ${escapeHtml(reportDateRange.end)}</div>
-                <div class="summary">مجموع: ${dataToPrint.length} رکورد</div>
-                <table>
-                    <thead><tr><th>#</th>${headerCells}</tr></thead>
-                    <tbody>${bodyRows}</tbody>
-                </table>
-            </body>
-            </html>
-        `;
-
         printWindow.document.open();
         printWindow.document.write(html);
         printWindow.document.close();
@@ -985,7 +1178,288 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({ onBack, onVi
         setTimeout(() => {
             printWindow.print();
             printWindow.close();
-        }, 250);
+        }, 350);
+    };
+
+    const handleDownloadPDF = () => {
+        const escapeHtml = (value: string) =>
+            String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+
+        const nameMap: Record<string, string> = {
+            REPORTS: 'گزارشات بازرسی',
+            LOGS: 'لاگ ورود کاربران',
+            EQUIPMENT_HEALTH: 'وضعیت تجهیزات',
+            ACTIVITY: 'عملکرد کاربران',
+        };
+
+        const now = new Date();
+        const reportTitle = nameMap[activeTab] || 'گزارش';
+        const printDateStr = now.toLocaleString('fa-IR', { dateStyle: 'long', timeStyle: 'short' });
+        const dateRangeShamsi = `${toShamsi(reportDateRange.start)} تا ${toShamsi(reportDateRange.end)}`;
+
+        // استایل‌های حرفه‌ای و رنگی برای ارائه به مدیران
+        const pdfStyles = `
+            @font-face { font-family: 'Vazirmatn'; src: url('${window.location.origin}/fonts/Vazirmatn-wght.woff2') format('woff2'); font-weight: 100 900; }
+            * { box-sizing: border-box; }
+            body { font-family: 'Vazirmatn', Tahoma, sans-serif; margin: 0; padding: 0; color: #1e293b; background: #fff; }
+            .pdf-root { padding: 24px 28px; width: 210mm; min-height: 297mm; }
+            .pdf-cover { background: linear-gradient(135deg, #7f1d1d 0%, #b91c1c 50%, #dc2626 100%); color: #fff; padding: 32px 36px; border-radius: 16px; margin-bottom: 28px; box-shadow: 0 10px 40px rgba(127,29,29,0.3); }
+            .pdf-cover h1 { margin: 0 0 8px; font-size: 1.9rem; font-weight: 900; }
+            .pdf-cover .sub { font-size: 0.9rem; opacity: 0.95; margin-bottom: 16px; }
+            .pdf-cover .meta { font-size: 0.8rem; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+            .pdf-cover .meta span { background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 8px; }
+            .pdf-cover .line { height: 3px; background: rgba(255,255,255,0.4); margin: 16px 0; border-radius: 2px; }
+            .pdf-section { margin-bottom: 24px; }
+            .pdf-section-title { font-size: 1rem; font-weight: 900; color: #0f172a; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 3px solid #7f1d1d; }
+            .pdf-info-cards { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+            .pdf-info-card { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 2px solid #fecaca; border-radius: 12px; padding: 14px 20px; flex: 1; min-width: 120px; }
+            .pdf-info-card .l { font-size: 0.68rem; color: #991b1b; font-weight: 700; }
+            .pdf-info-card .v { font-size: 1.1rem; font-weight: 900; color: #7f1d1d; }
+            .pdf-table-wrap { border-radius: 12px; overflow: hidden; border: 2px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+            table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+            th, td { padding: 12px 14px; text-align: center; vertical-align: middle; border: 1px solid #e2e8f0; }
+            th { background: linear-gradient(180deg, #7f1d1d 0%, #991b1b 100%); color: #fff; font-weight: 800; font-size: 0.78rem; }
+            tr:nth-child(even) td { background: #fafafa; }
+            .badge { display: inline-block; padding: 6px 14px; border-radius: 10px; font-size: 0.75rem; font-weight: 800; }
+            .badge-green { background: #22c55e; color: #fff; }
+            .badge-blue { background: #3b82f6; color: #fff; }
+            .badge-yellow { background: #eab308; color: #1e293b; }
+            .badge-health-ok { background: #22c55e; color: #fff; }
+            .badge-health-warn { background: #f59e0b; color: #fff; }
+            .badge-health-critical { background: #ef4444; color: #fff; }
+            .summary-row td { background: #fef2f2 !important; font-weight: 800; color: #7f1d1d; border-top: 3px solid #fecaca; }
+            .stat-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+            .stat-card { padding: 20px 14px; border-radius: 14px; text-align: center; color: #fff; box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+            .stat-card .num { font-size: 2rem; font-weight: 900; }
+            .stat-card .label { font-size: 0.7rem; opacity: 0.95; margin-top: 6px; }
+            .dir-ltr { direction: ltr; }
+            .pdf-footer { margin-top: 24px; padding: 14px 20px; background: #f8fafc; border-radius: 10px; font-size: 0.75rem; color: #64748b; border: 1px solid #e2e8f0; }
+            .top-performers { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 2px solid #fcd34d; border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+            .top-performers .title { font-size: 0.9rem; font-weight: 900; color: #92400e; margin-bottom: 12px; }
+            .top-performers .item { display: inline-flex; align-items: center; gap: 10px; background: #fff; padding: 10px 16px; border-radius: 12px; margin: 6px 6px 6px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+            .top-performers .item .rank { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.85rem; }
+            .top-performers .item .rank.gold { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #fff; }
+            .top-performers .item .rank.silver { background: linear-gradient(135deg, #94a3b8, #64748b); color: #fff; }
+            .top-performers .item .rank.bronze { background: linear-gradient(135deg, #fdba74, #ea580c); color: #fff; }
+            .pdf-trend-chart { margin-bottom: 16px; }
+            .pdf-trend-chart .chart-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 12px 20px 12px; overflow: visible; }
+            .pdf-trend-chart .trend-svg { width: 100%; height: 160px; overflow: visible; }
+            .pdf-root-landscape { width: 297mm !important; min-height: 210mm !important; }
+            .pdf-root-landscape .pdf-table-wrap { overflow: visible !important; }
+            .pdf-root-landscape .pdf-table-wrap table { width: max-content; min-width: 100%; table-layout: auto; }
+            .pdf-root-landscape .pdf-table-wrap th, .pdf-root-landscape .pdf-table-wrap td { padding: 6px 4px; font-size: 0.7rem; }
+        `;
+
+        let bodyContent = '';
+
+        if (activeTab === 'REPORTS' || activeTab === 'LOGS') {
+            const dataToPrint = filteredData;
+            const columns = currentSchema.columns;
+            if (!dataToPrint.length || !columns.length) {
+                setStatusMessage({ type: 'error', text: 'داده‌ای برای چاپ وجود ندارد.' });
+                return;
+            }
+            const formatPrintValue = (item: any, column: { key: string; type?: string }) => {
+                const rawValue = item[column.key];
+                if (rawValue === null || rawValue === undefined || rawValue === '') return '---';
+                if (column.type === 'date') {
+                    const date = new Date(rawValue);
+                    return isNaN(date.getTime()) ? '---' : date.toLocaleDateString('fa-IR');
+                }
+                if (column.type === 'datetime') {
+                    const date = new Date(rawValue);
+                    return isNaN(date.getTime()) ? '---' : date.toLocaleString('fa-IR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+                }
+                return String(rawValue);
+            };
+            const headerCells = columns.map((c) => `<th>${escapeHtml(c.label)}</th>`).join('');
+            const bodyRows = dataToPrint.map((item, idx) => {
+                const cells = columns.map((col) => {
+                    if (col.type === 'status') {
+                        const v = item[col.key] || 'بازبینی';
+                        const cls = v === 'اتمام یافته' ? 'badge-green' : v === 'ارسال به cmms' ? 'badge-blue' : 'badge-yellow';
+                        return `<td><span class="badge ${cls}">${escapeHtml(v)}</span></td>`;
+                    }
+                    return `<td class="${col.type === 'datetime' ? 'dir-ltr' : ''}">${escapeHtml(formatPrintValue(item, col))}</td>`;
+                }).join('');
+                return `<tr><td>${idx + 1}</td>${cells}</tr>`;
+            }).join('');
+            const statusCounts = activeTab === 'REPORTS' ? { done: dataToPrint.filter((r: any) => r.status === 'اتمام یافته').length, cmms: dataToPrint.filter((r: any) => r.status === 'ارسال به cmms').length, review: dataToPrint.filter((r: any) => !r.status || r.status === 'بازبینی').length } : null;
+            const uniqueUsers = activeTab === 'LOGS' ? new Set(dataToPrint.map((r: any) => r.user_code || r.user_name)).size : 0;
+            const infoCards = activeTab === 'REPORTS' && statusCounts
+                ? `<div class="pdf-info-cards"><div class="pdf-info-card"><div class="l">اتمام یافته</div><div class="v">${statusCounts.done}</div></div><div class="pdf-info-card"><div class="l">ارسال به CMMS</div><div class="v">${statusCounts.cmms}</div></div><div class="pdf-info-card"><div class="l">در حال بازبینی</div><div class="v">${statusCounts.review}</div></div></div>`
+                : activeTab === 'LOGS' ? `<div class="pdf-info-cards"><div class="pdf-info-card"><div class="l">تعداد ورود</div><div class="v">${dataToPrint.length}</div></div><div class="pdf-info-card"><div class="l">کاربران منحصر به فرد</div><div class="v">${uniqueUsers}</div></div></div>` : '';
+            bodyContent = `<div class="pdf-root" dir="rtl">
+                <div class="pdf-cover"><h1>${escapeHtml(reportTitle)}</h1><div class="sub">گزارش مدیریتی | سیستم چک‌لیست هوشمند</div><div class="line"></div><div class="meta"><span>تاریخ تهیه: ${escapeHtml(printDateStr)}</span><span>بازه: ${escapeHtml(dateRangeShamsi)}</span><span>تعداد: ${dataToPrint.length} رکورد</span></div></div>
+                <div class="pdf-section">${infoCards}<div class="pdf-section-title">جدول داده‌ها</div><div class="pdf-table-wrap"><table><thead><tr><th>#</th>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></div></div>
+                <div class="pdf-footer">${escapeHtml(reportTitle)} • ${escapeHtml(printDateStr)}</div></div>`;
+        } else if (activeTab === 'EQUIPMENT_HEALTH') {
+            const { items, summary } = calculateEquipmentHealth();
+            let filteredByWidget = items;
+            if (healthFilter === 'HEALTHY') filteredByWidget = items.filter((i: any) => i.healthScore >= 90);
+            else if (healthFilter === 'WARNING') filteredByWidget = items.filter((i: any) => i.healthScore >= 70 && i.healthScore < 90);
+            else if (healthFilter === 'CRITICAL') filteredByWidget = items.filter((i: any) => i.healthScore < 70);
+            const dataToPrint = processData(filteredByWidget);
+            if (!dataToPrint.length) {
+                setStatusMessage({ type: 'error', text: 'داده‌ای برای چاپ وجود ندارد.' });
+                return;
+            }
+            const statCards = `<div class="stat-card" style="background: linear-gradient(135deg,#3b82f6,#6366f1);"><div class="num">${summary.totalEquipments}</div><div class="label">تعداد تجهیزات</div></div>
+                <div class="stat-card" style="background: linear-gradient(135deg,#22c55e,#16a34a);"><div class="num">${summary.healthyEquipments}</div><div class="label">سالم ≥۹۰٪</div></div>
+                <div class="stat-card" style="background: linear-gradient(135deg,#f59e0b,#d97706);"><div class="num">${summary.warningEquipments}</div><div class="label">هشدار ۷۰–۹۰٪</div></div>
+                <div class="stat-card" style="background: linear-gradient(135deg,#ef4444,#dc2626);"><div class="num">${summary.criticalEquipments}</div><div class="label">بحرانی &lt;۷۰٪</div></div>
+                <div class="stat-card" style="background: linear-gradient(135deg,#8b5cf6,#7c3aed);"><div class="num">${summary.avgScore}%</div><div class="label">میانگین سلامت</div></div>`;
+            const bodyRows = dataToPrint.map((item, idx) => {
+                const badgeClass = item.healthScore >= 90 ? 'badge-health-ok' : item.healthScore >= 70 ? 'badge-health-warn' : 'badge-health-critical';
+                return `<tr><td>${idx + 1}</td><td style="text-align:right;font-weight:700">${escapeHtml(item.name)}</td><td class="dir-ltr">${escapeHtml(item.id)}</td><td>${item.totalInspections}</td><td style="color:#dc2626;font-weight:700">${item.totalFails}</td><td><span class="badge ${badgeClass}">${item.healthScore}%</span></td></tr>`;
+            }).join('');
+            bodyContent = `<div class="pdf-root" dir="rtl">
+                <div class="pdf-cover"><h1>${escapeHtml(reportTitle)}</h1><div class="sub">تحلیل سلامت تجهیزات | گزارش مدیریتی</div><div class="line"></div><div class="meta"><span>تاریخ: ${escapeHtml(printDateStr)}</span><span>بازه: ${escapeHtml(dateRangeShamsi)}</span><span>میانگین سلامت: ${summary.avgScore}%</span></div></div>
+                <div class="pdf-section"><div class="pdf-section-title">خلاصه وضعیت</div><div class="stat-cards">${statCards}</div></div>
+                <div class="pdf-section"><div class="pdf-section-title">جدول جزئیات تجهیزات</div><div class="pdf-table-wrap"><table><thead><tr><th>#</th><th>نام تجهیز</th><th>کد</th><th>بازرسی</th><th>خرابی</th><th>سلامت</th></tr></thead><tbody>${bodyRows}</tbody></table></div></div>
+                <div class="pdf-footer">${escapeHtml(reportTitle)} • ${escapeHtml(printDateStr)}</div></div>`;
+        } else if (activeTab === 'ACTIVITY') {
+            const { sortedUsers, dailyTotals, daysCount } = calculateActivityMatrix();
+            const dataToPrint = processData(sortedUsers);
+            if (!dataToPrint.length) {
+                setStatusMessage({ type: 'error', text: 'داده‌ای برای چاپ وجود ندارد.' });
+                return;
+            }
+            const dayHeaders = Array.from({ length: daysCount }, (_, i) => `<th style="min-width:20px;font-size:0.65rem">${i + 1}</th>`).join('');
+            const totalRow = Array.from({ length: daysCount }, (_, i) => `<td class="summary-row">${dailyTotals[i + 1] || 0}</td>`).join('');
+            const grandTotal = Object.values(dailyTotals).reduce((a, b) => a + b, 0);
+            const dailyTrend = Array.from({ length: daysCount }, (_, i) => ({ day: i + 1, count: dailyTotals[i + 1] || 0 }));
+            const maxDaily = Math.max(...dailyTrend.map(d => d.count), 5);
+            const denom = daysCount > 1 ? daysCount - 1 : 1;
+            const svgPoints = dailyTrend.map((d, index) => {
+                const x = 100 - ((index / denom) * 100);
+                const y = 100 - ((d.count / maxDaily) * 85);
+                return `${x},${y}`;
+            }).join(' ');
+            const xLabels = dailyTrend.filter((_, i) => (i + 1) % 2 === 1 || i === daysCount - 1).map(d => { const idx = d.day - 1; const x = 100 - ((idx / denom) * 100); return `<text x="${x}" y="108" font-size="7" fill="#64748b" text-anchor="middle" font-family="Vazirmatn,Tahoma,sans-serif">${d.day}</text>`; }).join('');
+            const trendChartSvg = `<div class="pdf-trend-chart"><div class="pdf-section-title">روند بازرسی‌های روزانه</div><div class="chart-box"><svg viewBox="0 -5 100 110" preserveAspectRatio="xMidYMid meet" class="trend-svg"><defs><linearGradient id="pdfRedGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ef4444" stop-opacity="0.3"/><stop offset="100%" stop-color="#ef4444" stop-opacity="0"/></linearGradient></defs><path d="M100,100 ${svgPoints} L0,100 Z" fill="url(#pdfRedGrad)"/><polyline points="${svgPoints}" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${xLabels}</svg></div></div>`;
+            const bodyRows = dataToPrint.map((user, idx) => {
+                const dayCells = Array.from({ length: daysCount }, (_, i) => {
+                    const count = user.days?.[i + 1] || 0;
+                    return `<td style="${count > 0 ? 'background:#dcfce7;color:#166534;font-weight:700' : ''}">${count || '-'}</td>`;
+                }).join('');
+                const rankBadge = idx < 3 ? ` style="background:${idx === 0 ? '#fef08a' : idx === 1 ? '#e2e8f0' : '#fed7aa'};padding:2px 8px;border-radius:8px;font-weight:800"` : '';
+                return `<tr><td${rankBadge}>${idx + 1}</td><td style="text-align:right;font-weight:700">${escapeHtml(user.name)}</td>${dayCells}<td class="summary-row">${user.total}</td></tr>`;
+            }).join('');
+            bodyContent = `<div class="pdf-root pdf-root-landscape" dir="rtl">
+                <div class="pdf-cover"><h1>${escapeHtml(reportTitle)}</h1><div class="sub">عملکرد روزانه بازرسین | گزارش مدیریتی</div><div class="line"></div><div class="meta"><span>تاریخ: ${escapeHtml(printDateStr)}</span><span>بازه: ${escapeHtml(dateRangeShamsi)}</span><span>مجموع بازرسی: ${grandTotal}</span><span>تعداد بازرس: ${dataToPrint.length}</span></div></div>
+                <div class="pdf-section">${trendChartSvg}<div class="pdf-section-title">ماتریس عملکرد روزانه</div><div class="pdf-table-wrap"><table><thead><tr><th>#</th><th>نام بازرس</th>${dayHeaders}<th>مجموع</th></tr></thead><tbody>${bodyRows}<tr><td></td><td class="summary-row" style="text-align:right">مجموع کل</td>${totalRow}<td class="summary-row">${grandTotal}</td></tr></tbody></table></div></div>
+                <div class="pdf-footer">${escapeHtml(reportTitle)} • ${escapeHtml(printDateStr)}</div></div>`;
+        } else {
+            setStatusMessage({ type: 'error', text: 'داده‌ای برای چاپ وجود ندارد.' });
+            return;
+        }
+
+        if (activeTab === 'REPORTS' || activeTab === 'LOGS' || activeTab === 'ACTIVITY') {
+            const printStyles = activeTab === 'ACTIVITY' ? pdfStyles + '\n@page { size: landscape; margin: 18mm; }' : pdfStyles;
+            const fullHtml = `<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>${escapeHtml(reportTitle)}</title><style>${printStyles}</style></head><body>${bodyContent}</body></html>`;
+            const printWindow = window.open('', '_blank', activeTab === 'ACTIVITY' ? 'width=1400,height=900' : 'width=900,height=800');
+            if (!printWindow) {
+                setStatusMessage({ type: 'error', text: 'امکان باز کردن پنجره وجود ندارد. لطفاً pop-up را مجاز کنید.' });
+                return;
+            }
+            printWindow.document.open();
+            printWindow.document.write(fullHtml);
+            printWindow.document.close();
+            printWindow.focus();
+            setStatusMessage({ type: 'success', text: 'برای ذخیره PDF، در پنجره چاپ گزینه «ذخیره به عنوان PDF» را انتخاب کنید.' });
+            setTimeout(() => {
+                printWindow.print();
+                setTimeout(() => printWindow.close(), 500);
+            }, 400);
+            return;
+        }
+
+        const isLandscape = false;
+        const wrapper = document.createElement('div');
+        wrapper.setAttribute('dir', 'rtl');
+        wrapper.style.cssText = isLandscape
+            ? 'position:fixed;top:0;left:0;width:1123px;min-height:794px;background:#fff !important;z-index:9999;overflow:auto;box-sizing:border-box;color:#1e293b !important;'
+            : 'position:fixed;top:0;left:0;width:794px;min-height:1123px;background:#fff !important;z-index:9999;overflow:auto;box-sizing:border-box;color:#1e293b !important;';
+        wrapper.innerHTML = `<style>${pdfStyles}</style>${bodyContent}`;
+        document.body.appendChild(wrapper);
+
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.75);display:flex;align-items:center;justify-content:center;z-index:10000;color:#fff;font-family:Vazirmatn,Tahoma,sans-serif;font-size:1.1rem;font-weight:700;';
+        overlay.innerHTML = '<div style="text-align:center"><div style="width:48px;height:48px;border:3px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:pdfSpin 0.8s linear infinite;margin:0 auto 12px"></div>در حال ایجاد PDF...</div>';
+        const styleEl = document.createElement('style');
+        styleEl.textContent = '@keyframes pdfSpin { to { transform: rotate(360deg); } }';
+        document.head.appendChild(styleEl);
+        document.body.appendChild(overlay);
+
+        const filename = `${reportTitle.replace(/\s/g, '_')}_${now.toISOString().slice(0, 10)}.pdf`;
+
+        const cleanup = () => {
+            if (wrapper.parentNode) document.body.removeChild(wrapper);
+            if (overlay.parentNode) document.body.removeChild(overlay);
+            if (styleEl.parentNode) document.head.removeChild(styleEl);
+        };
+
+        setTimeout(() => {
+            const darkBefore = document.documentElement.classList.contains('dark');
+            if (darkBefore) document.documentElement.classList.remove('dark');
+            html2canvas(wrapper, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                logging: false,
+                backgroundColor: '#ffffff',
+                onclone: (clonedDoc, clonedEl) => {
+                    clonedDoc.body.style.backgroundColor = '#ffffff';
+                    clonedDoc.documentElement.style.backgroundColor = '#ffffff';
+                    clonedEl.style.backgroundColor = '#ffffff';
+                    clonedEl.style.color = '#1e293b';
+                },
+            })
+                .then((canvas) => {
+                    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: activeTab === 'ACTIVITY' ? 'landscape' : 'portrait' });
+                    const pdfW = pdf.internal.pageSize.getWidth();
+                    const pdfH = pdf.internal.pageSize.getHeight();
+                    const margin = 8;
+                    const contentW = pdfW - margin * 2;
+                    const contentH = (canvas.height * contentW) / canvas.width;
+                    const pageHeight = pdfH - margin * 2;
+
+                    if (contentH <= pageHeight) {
+                        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, contentW, contentH);
+                    } else {
+                        const pxPageHeight = (canvas.width * pageHeight) / contentW;
+                        let drawn = 0;
+                        while (drawn < canvas.height) {
+                            const sourceH = Math.min(pxPageHeight, canvas.height - drawn);
+                            const pageCanvas = document.createElement('canvas');
+                            pageCanvas.width = canvas.width;
+                            pageCanvas.height = sourceH;
+                            const ctx = pageCanvas.getContext('2d')!;
+                            ctx.drawImage(canvas, 0, drawn, canvas.width, sourceH, 0, 0, canvas.width, sourceH);
+                            const imgH = (sourceH * contentW) / canvas.width;
+                            if (drawn > 0) pdf.addPage();
+                            pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, contentW, imgH);
+                            drawn += sourceH;
+                        }
+                    }
+
+                    pdf.save(filename);
+                    if (darkBefore) document.documentElement.classList.add('dark');
+                    cleanup();
+                    setStatusMessage({ type: 'success', text: 'فایل PDF با موفقیت دانلود شد.' });
+                })
+                .catch((err: Error) => {
+                    if (darkBefore) document.documentElement.classList.add('dark');
+                    cleanup();
+                    setStatusMessage({ type: 'error', text: `خطا در ایجاد PDF: ${err.message}` });
+                });
+        }, 800);
     };
 
     // ... (handleExportExcel, toggleSelect, selectAll) ...
@@ -1192,7 +1666,8 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({ onBack, onVi
                             <button onClick={() => openStatusModal(null, 'ارسال به cmms')} className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95"><Send size={18} /><span className="hidden sm:inline">CMMS</span></button>
                         </>
                     )}
-                    <button onClick={handlePrintPDF} className="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-slate-500/20 active:scale-95"><Printer size={18} /><span>چاپ / PDF</span></button>
+                    <button onClick={handlePrintPDF} className="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-slate-500/20 active:scale-95"><Printer size={18} /><span>چاپ</span></button>
+                    <button onClick={handleDownloadPDF} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 active:scale-95"><FileDown size={18} /><span>PDF</span></button>
                     <button onClick={handleExportExcel} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 active:scale-95"><FileSpreadsheet size={18} /><span>اکسل</span></button>
                     {selectedIds.size > 0 && currentSchema.allowDelete && userRole === 'super_admin' && (
                         <button onClick={() => handleDelete(Array.from(selectedIds))} className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 active:scale-95"><Trash2 size={18} /><span>حذف ({selectedIds.size})</span></button>

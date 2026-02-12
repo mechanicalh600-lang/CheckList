@@ -335,7 +335,6 @@ const getInspectionsDetailed = async (userCode?: string, startDate?: string, end
                 : 0,
             failTasksSample: uniqueItems
                 .filter((item: any) => item.status === 'FAIL')
-                .slice(0, 5)
                 .map((item: any) => item.task),
             isOverviewOnly: false,
             items: uniqueItems.map((r: any) => ({
@@ -394,7 +393,8 @@ export const getInspectionsOverview = async (userCode?: string, startDate?: stri
 };
 
 export const getInspections = async (userCode?: string, startDate?: string, endDate?: string) => {
-    return getInspectionsOverview(userCode, startDate, endDate);
+    // Use detailed fetch to get full items (all failures) for history view; overview RPC limits fail_tasks_sample to 5
+    return getInspectionsDetailed(userCode, startDate, endDate);
 };
 
 // NEW: Function to get User Logs with Date Filtering
