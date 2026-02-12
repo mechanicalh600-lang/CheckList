@@ -14,6 +14,7 @@ import { getStartOfCurrentShamsiMonth, toShamsi } from '@/utils';
 interface ReportsDashboardProps {
     onBack: () => void;
     onViewReport: (report: any) => void;
+    userRole?: string;
 }
 
 const SCHEMA: any = {
@@ -59,7 +60,7 @@ const SCHEMA: any = {
     }
 };
 
-export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({ onBack, onViewReport }) => {
+export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({ onBack, onViewReport, userRole = '' }) => {
     const [activeTab, setActiveTab] = useState('REPORTS');
     const [loading, setLoading] = useState(false);
     const [dataList, setDataList] = useState<any[]>([]);
@@ -1193,7 +1194,7 @@ export const ReportsDashboard: React.FC<ReportsDashboardProps> = ({ onBack, onVi
                     )}
                     <button onClick={handlePrintPDF} className="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-slate-500/20 active:scale-95"><Printer size={18} /><span>چاپ / PDF</span></button>
                     <button onClick={handleExportExcel} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 active:scale-95"><FileSpreadsheet size={18} /><span>اکسل</span></button>
-                    {selectedIds.size > 0 && currentSchema.allowDelete && (
+                    {selectedIds.size > 0 && currentSchema.allowDelete && userRole === 'super_admin' && (
                         <button onClick={() => handleDelete(Array.from(selectedIds))} className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 active:scale-95"><Trash2 size={18} /><span>حذف ({selectedIds.size})</span></button>
                     )}
                 </div>

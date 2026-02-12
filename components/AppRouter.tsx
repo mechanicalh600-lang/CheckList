@@ -207,6 +207,7 @@ export const AppRouter = ({
           <ReportsDashboard
             onBack={dashboard.onBackHome}
             onViewReport={dashboard.onDashboardViewReport}
+            userRole={dashboard.userRole}
           />
         </Suspense>
       )}
