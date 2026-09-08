@@ -29,11 +29,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase credentials missing!');
 }
 
-const museumFetch: typeof fetch = (input, init = {}) => {
-  const headers = new Headers(init.headers || {});
+const museumFetch: typeof fetch = (input, init) => {
+  const options: RequestInit = init ?? {};
+  const headers = new Headers(options.headers);
   const token = getMuseumSession();
   if (token) headers.set('x-museum-session', token);
-  return fetch(input, { ...init, headers });
+  return fetch(input, { ...options, headers });
 };
 
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
