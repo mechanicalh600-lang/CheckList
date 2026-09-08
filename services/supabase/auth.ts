@@ -1,5 +1,5 @@
 import { UserRole } from '@/types';
-import { supabase } from './client';
+import { clearMuseumSession, setMuseumSession, supabase } from './client';
 
 const getClientIP = async (): Promise<string | null> => {
   try {
@@ -14,32 +14,35 @@ const getClientIP = async (): Promise<string | null> => {
 
 export const authenticateUser = async (code: string, passwordInput: string) => {
   try {
-    const { data, error } = await supabase.from('defined_users').select('*').eq('code', code).single();
+    clearMuseumSession();
 
-    if (error || !data) {
-      return { success: false, message: 'نام کاربری یافت نشد.' };
+    const { data, error } = await supabase.rpc('museum_login', {
+      p_code: code,
+      p_password: passwordInput,
+    });
+
+    const row = Array.isArray(data) ? data[0] : data;
+    if (error || !row?.session_token) {
+      return { success: false, message: 'نام کاربری یا رمز عبور اشتباه است.' };
     }
 
-    const currentDbPassword = data.password;
-    const defaultPassword = data.code;
+    setMuseumSession(row.session_token);
 
-    const isValid = currentDbPassword
-      ? currentDbPassword === passwordInput
-      : defaultPassword === passwordInput;
-
-    if (!isValid) {
-      return { success: false, message: 'رمز عبور اشتباه است.' };
-    }
-
-    const needsPasswordChange = data.force_change_password || !currentDbPassword;
+    const user = {
+      name: row.name,
+      code: row.code,
+      org: row.org,
+      avatar_url: row.avatar_url,
+      role: row.role as UserRole,
+    };
 
     getClientIP().then((ip) => {
       supabase
         .from('user_logs')
         .insert([
           {
-            user_code: data.code,
-            user_name: data.name,
+            user_code: row.code,
+            user_name: row.name,
             login_timestamp: new Date().toISOString(),
             ip_address: ip || 'Unknown',
           },
@@ -51,52 +54,71 @@ export const authenticateUser = async (code: string, passwordInput: string) => {
 
     return {
       success: true,
-      user: {
-        name: data.name,
-        code: data.code,
-        org: data.org,
-        avatar_url: data.avatar_url,
-        role: data.role as UserRole,
-      },
-      needsPasswordChange,
+      user,
+      needsPasswordChange: Boolean(row.needs_password_change),
     };
   } catch (e) {
+    clearMuseumSession();
     console.error('Auth error:', e);
     return { success: false, message: 'خطا در برقراری ارتباط با سرور.' };
   }
 };
 
-export const changeUserPassword = async (code: string, newPassword: string) => {
+export const changeUserPassword = async (_code: string, newPassword: string) => {
   try {
-    const { error } = await supabase
-      .from('defined_users')
-      .update({
-        password: newPassword,
-        force_change_password: false,
-      })
-      .eq('code', code);
+    const { data, error } = await supabase.rpc('museum_change_password', {
+      p_new_password: newPassword,
+    });
 
-    if (error) throw error;
+    if (error || data !== true) {
+      throw error || new Error('Password change rejected');
+    }
     return { success: true };
   } catch (e: any) {
     console.error('Change password error:', e);
-    return { success: false, message: e.message };
+    return { success: false, message: e?.message || 'خطا در تغییر رمز عبور' };
   }
 };
 
 export const adminResetUserPassword = async (userCode: string) => {
   try {
-    const { error } = await supabase
-      .from('defined_users')
-      .update({
-        password: null,
-        force_change_password: true,
-      })
-      .eq('code', userCode);
+    const { data, error } = await supabase.rpc('museum_admin_reset_password', {
+      p_user_code: userCode,
+    });
 
-    if (error) throw error;
+    if (error || data !== true) {
+      throw error || new Error('Password reset rejected');
+    }
     return { success: true };
   } catch (e: any) {
-    return { success: false, message: e.message };
+    return { success: false, message: e?.message || 'خطا در بازنشانی رمز عبور' };
+  }
+};
+
+export const logoutMuseumSession = async () => {
+  try {
+    await supabase.rpc('museum_logout');
+  } catch (e) {
+    console.warn('Museum session logout failed:', e);
+  } finally {
+    clearMuseumSession();
+  }
+};
+
+export const restoreMuseumSession = async () => {
+  try {
+    const { data, error } = await supabase.rpc('museum_current_user');
+    const row = Array.isArray(data) ? data[0] : data;
+    if (error || !row) return null;
+    return {
+      name: row.name,
+      code: row.code,
+      org: row.org,
+      avatar_url: row.avatar_url,
+      role: row.role as UserRole,
+      force_change_password: Boolean(row.force_change_password),
+    };
+  } catch {
+    return null;
   }
 };
