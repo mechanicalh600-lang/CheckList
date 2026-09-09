@@ -109,7 +109,10 @@ export const restoreMuseumSession = async () => {
   try {
     const { data, error } = await supabase.rpc('museum_current_user');
     const row = Array.isArray(data) ? data[0] : data;
-    if (error || !row) return null;
+    if (error || !row) {
+      clearMuseumSession();
+      return null;
+    }
     return {
       name: row.name,
       code: row.code,
@@ -119,6 +122,7 @@ export const restoreMuseumSession = async () => {
       force_change_password: Boolean(row.force_change_password),
     };
   } catch {
+    clearMuseumSession();
     return null;
   }
 };
