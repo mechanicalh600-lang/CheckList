@@ -1,0 +1,84 @@
+name: One-time hidden security repair
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-time-hidden-security-repair.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Patch biometric authentication boundary
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('hooks/useAuth.ts')
+          text = p.read_text()
+          old_import = "import { authenticateUser, changeUserPassword } from '@/services/supabaseClient';"
+          new_import = old_import + "\nimport { restoreMuseumSession } from '@/services/supabase/auth';"
+          if old_import not in text:
+              raise SystemExit('expected auth import not found')
+          text = text.replace(old_import, new_import, 1)
+
+          old = """      const { users } = await fetchMasterData();
+      const data = users.find((u) => u.code === resolvedUserCode);
+      if (data) {
+        localStorage.setItem('biometric_user', data.code);
+        setUser(data);
+        setView(views.HOME);
+      } else {
+        setLoginError('کاربر متناظر با ورود بیومتریک یافت نشد. یک‌بار ورود عادی انجام دهید.');
+      }
+"""
+          new = """      // A local WebAuthn assertion is not an application login by itself.
+      // It may only unlock/resume an already valid server-side museum session.
+      // This prevents a locally stored biometric credential from bypassing the
+      // database-backed authentication and RLS boundary.
+      const restored = await restoreMuseumSession();
+      if (!restored || !resolvedUserCode || restored.code !== resolvedUserCode) {
+        setLoginError('جلسه امن شما منقضی شده است. ابتدا یک‌بار ورود عادی انجام دهید.');
+        return;
+      }
+
+      const { users } = await fetchMasterData();
+      const data = users.find((u) => u.code === restored.code);
+      if (data) {
+        localStorage.setItem('biometric_user', data.code);
+        setUser(data);
+        setView(restored.force_change_password ? views.FORCE_PASSWORD_CHANGE : views.HOME);
+      } else {
+        setLoginError('کاربر متناظر با ورود بیومتریک یافت نشد. یک‌بار ورود عادی انجام دهید.');
+      }
+"""
+          if old not in text:
+              raise SystemExit('expected biometric login block not found')
+          text = text.replace(old, new, 1)
+          p.write_text(text)
+          PY
+
+      - name: Verify invisible repair
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+          npm audit --audit-level=high
+
+      - name: Commit verified repair
+        run: |
+          git config user.name 'newray-preservation-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add hooks/useAuth.ts
+          git diff --cached --exit-code && exit 0
+          git commit -m 'security: bind biometric unlock to server session'
+          git push
