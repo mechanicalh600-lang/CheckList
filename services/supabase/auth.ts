@@ -1,17 +1,6 @@
 import { UserRole } from '@/types';
 import { clearMuseumSession, setMuseumSession, supabase } from './client';
 
-const getClientIP = async (): Promise<string | null> => {
-  try {
-    const response = await fetch('https://api.ipify.org?format=json');
-    const data = await response.json();
-    return data.ip;
-  } catch (e) {
-    console.warn('Failed to fetch IP address:', e);
-    return null;
-  }
-};
-
 export const authenticateUser = async (code: string, passwordInput: string) => {
   try {
     clearMuseumSession();
@@ -36,20 +25,11 @@ export const authenticateUser = async (code: string, passwordInput: string) => {
       role: row.role as UserRole,
     };
 
-    getClientIP().then((ip) => {
-      supabase
-        .from('user_logs')
-        .insert([
-          {
-            user_code: row.code,
-            user_name: row.name,
-            login_timestamp: new Date().toISOString(),
-            ip_address: ip || 'Unknown',
-          },
-        ])
-        .then(({ error: logError }) => {
-          if (logError) console.warn('Login log failed:', logError.message);
-        });
+    // Record the successful login at the server/database boundary. The RPC
+    // validates the museum session and derives request metadata itself, so the
+    // preserved application no longer depends on a third-party IP lookup.
+    void supabase.rpc('museum_record_login').then(({ error: logError }) => {
+      if (logError) console.warn('Login log failed:', logError.message);
     });
 
     return {
