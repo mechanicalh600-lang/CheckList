@@ -24,16 +24,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate required runtime configuration
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: |
-          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
-            echo "::error::CheckList deployment requires SUPABASE_URL and SUPABASE_ANON_KEY repository secrets. Refusing to publish a disconnected museum application."
-            exit 1
-          fi
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -47,11 +37,12 @@ jobs:
         run: npm audit --audit-level=high
 
       - name: Build
+        # This is browser-visible configuration. Supabase publishable keys are
+        # intentionally public; privileged/service-role keys must never be added here.
         env:
           VITE_BASE_PATH: /CheckList/
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SUPABASE_URL: https://onizpprvuuigxxkldjdp.supabase.co
+          SUPABASE_ANON_KEY: sb_publishable_wiyc7tpceaqelH6OD9UeYQ_tqkc6VvQ
         run: npm run build
 
       - name: Setup Pages
