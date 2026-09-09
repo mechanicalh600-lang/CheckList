@@ -7,6 +7,7 @@ import {
   getMasterUsers,
   uploadProfileImage,
 } from '@/services/supabaseClient';
+import { restoreMuseumSession } from '@/services/supabase/auth';
 import { exportInspectionHistoryToExcel } from '@/services/exportService';
 
 // Imported Components
@@ -255,9 +256,43 @@ export const App: React.FC<InspectionModuleProps> = ({ currentUser, onExit }) =>
 
   useEffect(() => {
     console.log(`App Version: V${APP_VERSION}`);
-    setIsLoadingData(true);
-    fetchMasterData().finally(() => setIsLoadingData(false));
-  }, [setIsLoadingData]);
+
+    if (currentUser) {
+      setIsLoadingData(true);
+      fetchMasterData().finally(() => setIsLoadingData(false));
+      return;
+    }
+
+    let cancelled = false;
+    const restoreSession = async () => {
+      const restored = await restoreMuseumSession();
+      if (!restored || cancelled) return;
+
+      const restoredUser: User = {
+        name: restored.name,
+        code: restored.code,
+        org: restored.org,
+        avatar_url: restored.avatar_url,
+        role: restored.role,
+      };
+
+      setUser(restoredUser);
+      setView(restored.force_change_password ? AppView.FORCE_PASSWORD_CHANGE : AppView.HOME);
+      setIsLoadingData(true);
+      try {
+        await fetchMasterData();
+      } finally {
+        if (!cancelled) setIsLoadingData(false);
+      }
+    };
+
+    void restoreSession();
+    return () => {
+      cancelled = true;
+    };
+    // Restore only once for the standalone museum bootstrap.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, setIsLoadingData]);
 
   useEffect(() => {
     if (user) {
