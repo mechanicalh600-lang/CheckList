@@ -26,13 +26,12 @@ window.setTimeout(() => {
   window.requestAnimationFrame(mountApp);
 }, delay);
 
-// The historical repository already contains a manifest and service worker.
-// Register it using Vite's resolved base path so GitHub Pages scopes it to
-// /CheckList/ instead of the account root. This changes no visible UI.
+// The service worker URL is intentionally relative to the deployed document,
+// so the same historical build works at /CheckList/ on GitHub Pages and at /
+// during local development without requiring runtime-visible configuration.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const swUrl = `${import.meta.env.BASE_URL}sw.js`;
-    navigator.serviceWorker.register(swUrl).catch((error) => {
+    navigator.serviceWorker.register('./sw.js').catch((error) => {
       console.error('Service worker registration failed:', error);
     });
   });
