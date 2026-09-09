@@ -1,5 +1,6 @@
 import { Dispatch, FormEvent, SetStateAction, useEffect, useRef, useState } from 'react';
 import { authenticateUser, changeUserPassword } from '@/services/supabaseClient';
+import { restoreMuseumSession } from '@/services/supabase/auth';
 import { User } from '@/types';
 
 interface AuthViews {
@@ -293,12 +294,20 @@ export const useAuth = ({
         await new Promise((resolve) => setTimeout(resolve, 1000 - elapsed));
       }
 
+      // A local WebAuthn assertion is not an application login by itself. It may
+      // only unlock/resume an already valid server-side museum session.
+      const restored = await restoreMuseumSession();
+      if (!restored || !resolvedUserCode || restored.code !== resolvedUserCode) {
+        setLoginError('جلسه امن شما منقضی شده است. ابتدا یک‌بار ورود عادی انجام دهید.');
+        return;
+      }
+
       const { users } = await fetchMasterData();
-      const data = users.find((u) => u.code === resolvedUserCode);
+      const data = users.find((u) => u.code === restored.code);
       if (data) {
         localStorage.setItem('biometric_user', data.code);
         setUser(data);
-        setView(views.HOME);
+        setView(restored.force_change_password ? views.FORCE_PASSWORD_CHANGE : views.HOME);
       } else {
         setLoginError('کاربر متناظر با ورود بیومتریک یافت نشد. یک‌بار ورود عادی انجام دهید.');
       }
