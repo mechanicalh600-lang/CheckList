@@ -4,22 +4,17 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '29 3 * * 1'
-  push:
+  workflow_run:
+    workflows: ['Deploy to GitHub Pages']
+    types: [completed]
     branches: [main]
-    paths:
-      - '.github/workflows/museum-live-smoke.yml'
-      - 'components/views/LoginView.tsx'
-      - 'hooks/useAuth.ts'
-      - 'services/supabase/auth.ts'
-      - 'services/supabase/client.ts'
-      - 'App.tsx'
-      - 'supabase/migrations/**'
 
 permissions:
   contents: read
 
 jobs:
   live-smoke:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -42,7 +37,7 @@ jobs:
           cat > museum.spec.cjs <<'EOF'
           const { test, expect } = require('@playwright/test');
 
-          test('CheckList museum is reachable and live authentication endpoint responds safely', async ({ page }) => {
+          test('CheckList legacy application is reachable and live authentication endpoint responds safely', async ({ page }) => {
             const base = 'https://mechanicalh600-lang.github.io/CheckList/';
             const pageErrors = [];
             page.on('pageerror', (error) => pageErrors.push(error.message));
