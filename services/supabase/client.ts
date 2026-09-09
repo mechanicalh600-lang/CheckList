@@ -1,8 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 
-const DEFAULT_SUPABASE_URL = 'https://onizpprvuuigxxkldjdp.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_wiyc7tpceaqelH6OD9UeYQ_tqkc6VvQ';
-
 export const MUSEUM_SESSION_KEY = 'newray_checklist_museum_session';
 
 export const setMuseumSession = (token: string) => {
@@ -22,11 +19,13 @@ export const getMuseumSession = (): string | null => {
   return window.localStorage.getItem(MUSEUM_SESSION_KEY);
 };
 
-export const supabaseUrl = process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
-export const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
+// Runtime configuration must come from the environment/build pipeline only.
+// No live Supabase URL or publishable/anon key is stored in source control.
+export const supabaseUrl = process.env.SUPABASE_URL || '';
+export const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase credentials missing!');
+  console.error('Supabase configuration is missing. Set SUPABASE_URL and SUPABASE_ANON_KEY.');
 }
 
 const museumFetch: typeof fetch = (input, init) => {
@@ -37,6 +36,12 @@ const museumFetch: typeof fetch = (input, init) => {
   return fetch(input, { ...options, headers });
 };
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
-  global: { fetch: museumFetch },
-});
+// Non-live placeholders keep the historical UI renderable when configuration
+// is absent, while all real requests remain disabled until env values are supplied.
+export const supabase = createClient(
+  supabaseUrl || 'https://missing-config.invalid',
+  supabaseAnonKey || 'missing-config',
+  {
+    global: { fetch: museumFetch },
+  }
+);
