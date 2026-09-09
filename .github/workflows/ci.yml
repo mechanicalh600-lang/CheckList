@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [museum-hardening-20260908]
+    branches: [museum-hardening-phase2-20260909]
 
 permissions:
   contents: read
@@ -18,12 +18,11 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
-      - name: Install dependencies
+      - name: Install exact dependencies
         run: npm ci
-      - name: Legacy typecheck (non-blocking until historical debt is cleared)
-        continue-on-error: true
+      - name: Typecheck
         run: npm run typecheck
       - name: Tests
         run: npm test
@@ -31,6 +30,5 @@ jobs:
         env:
           VITE_BASE_PATH: /CheckList/
         run: npm run build
-      - name: Dependency audit report
-        continue-on-error: true
+      - name: Dependency audit
         run: npm audit --audit-level=high
