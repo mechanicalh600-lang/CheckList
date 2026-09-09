@@ -19,8 +19,10 @@ export const getMuseumSession = (): string | null => {
   return window.localStorage.getItem(MUSEUM_SESSION_KEY);
 };
 
-// Runtime configuration must come from the environment/build pipeline only.
-// No live Supabase URL or publishable/anon key is stored in source control.
+// Browser configuration is injected by the build pipeline. The Supabase URL
+// and publishable key are intentionally public client configuration and may be
+// present in the deployment workflow/bundle. Privileged or service-role keys
+// must never be stored in source control or shipped to the browser.
 export const supabaseUrl = process.env.SUPABASE_URL || '';
 export const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
 
