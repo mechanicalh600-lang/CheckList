@@ -1,5 +1,6 @@
 import { Dispatch, SetStateAction, useCallback, useEffect, useState } from 'react';
 import { User } from '@/types';
+import { logoutMuseumSession } from '@/services/supabase/auth';
 
 interface SessionViews {
   LOGIN: string;
@@ -44,6 +45,8 @@ export const useSession = ({
       onExit();
       return;
     }
+
+    void logoutMuseumSession();
     setUser(null);
     setUserAvatar(null);
     clearHistory();

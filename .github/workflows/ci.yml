@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [museum-hardening-20260908]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Legacy typecheck (non-blocking until historical debt is cleared)
+        continue-on-error: true
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Build
+        env:
+          VITE_BASE_PATH: /CheckList/
+        run: npm run build
+      - name: Dependency audit report
+        continue-on-error: true
+        run: npm audit --audit-level=high
